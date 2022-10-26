@@ -78,7 +78,7 @@ void effectsTick()
         case EFF_FIRE_2021:           LOW_DELAY_TICK { effTimer = millis(); Fire2021Routine();            Eff_Tick (); }  break;  // ( 53U) Огонь 2021
         case EFF_FIREFLY_TOP:         DYNAMIC_DELAY_TICK { effTimer = millis(); MultipleStream5();            Eff_Tick (); }  break;  // ( 54U) Огoнь верховой
         case EFF_FIREFLY:             DYNAMIC_DELAY_TICK { effTimer = millis(); MultipleStream3();            Eff_Tick (); }  break;  // ( 55U) Огoнь парящий
-        case EFF_FIRESPARKS:          DYNAMIC_DELAY_TICK { effTimer = millis(); FireSparks();                 Eff_Tick (); }  break;  // ( 56U) Огонь с искрами
+        case EFF_FIRESPARKS:          HIGH_DELAY_TICK { effTimer = millis(); FireSparks();                 Eff_Tick (); }  break;  // ( 56U) Огонь с искрами
         case EFF_COLOR_RAIN:          DYNAMIC_DELAY_TICK { effTimer = millis(); coloredRain();                Eff_Tick (); }  break;  // ( 57U) Осадки
         case EFF_OSCILLATING:         DYNAMIC_DELAY_TICK { effTimer = millis(); oscillatingRoutine();         Eff_Tick (); }  break;  // ( 58U) Осциллятор
         case EFF_CLOUDS:              HIGH_DELAY_TICK { effTimer = millis(); cloudsNoiseRoutine();         Eff_Tick (); }  break;  // ( 59U) Облака
@@ -99,7 +99,7 @@ void effectsTick()
         case EFF_PULSE_WHITE:         LOW_DELAY_TICK     { effTimer = millis(); pulseRoutine(8U);             Eff_Tick (); }  break;  // ( 74U) Пульс белый
         case EFF_PULSE_RAINBOW:       DYNAMIC_DELAY_TICK { effTimer = millis(); pulseRoutine(4U);             Eff_Tick (); }  break;  // ( 75U) Пульс радужный
         case EFF_RADIAL_WAWE:         DYNAMIC_DELAY_TICK { effTimer = millis(); RadialWave();                 Eff_Tick (); }  break;  // ( 76U) Радиальная волна
-        case EFF_RAINBOW_VER:         LOW_DELAY_TICK     { effTimer = millis(); rainbowRoutine();             Eff_Tick (); }  break;  // ( 77U) Радуга
+        case EFF_RAINBOW_VER:         DYNAMIC_DELAY_TICK     { effTimer = millis(); rainbowRoutine();             Eff_Tick (); }  break;  // ( 77U) Радуга
         case EFF_RAINBOW:             HIGH_DELAY_TICK { effTimer = millis(); rainbowNoiseRoutine();        Eff_Tick (); }  break;  // ( 78U) Радуга 3D
         case EFF_SNAKE:               DYNAMIC_DELAY_TICK { effTimer = millis(); MultipleStream8();            Eff_Tick (); }  break;  // ( 79U) Радужный змей
         case EFF_RAIN:                DYNAMIC_DELAY_TICK { effTimer = millis(); RainRoutine();                Eff_Tick (); }  break;  // ( 80U) Разноцветный дождь
