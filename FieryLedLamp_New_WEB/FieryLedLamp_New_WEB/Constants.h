@@ -1,10 +1,10 @@
-// Текущая версия : FieryLedLamp v3.3_new_web 109 эффектов
+// Текущая версия : FieryLedLamp v3.3_new_web 110 эффектов
 // ВНИМАНИЕ!!! Большая часть настроек перенесена в файл data/config и может изменяться в процессе эксплуатации лампы.
 // Внимательно читайте файл ПРОЧТИ МЕНЯ!!!.txt и ПРОЧТИ МЕНЯ.doc (тут с картинками)
 
 #pragma once
 
-#define FLL_VERSION           (" Ver.3.3.109")
+#define FLL_VERSION           (" Ver.3.3.110")
 
 //#include <ESP8266WebServer.h>
 
@@ -222,49 +222,50 @@ uint8_t MATRIX_TYPE = 0;                                    // тип матри
 #define EFF_PLASMA              ( 65U)    // Плазма
 #define EFF_SPIDER              ( 66U)    // Плазменная лампа
 #define EFF_FLAME               ( 67U)    // Пламя
-#define EFF_BY_EFFECT           ( 68U)    // Побочный эффект
-#define EFF_POPCORN             ( 69U)    // Попкорн
-#define EFF_PRISMATA            ( 70U)    // Призмата
-#define EFF_ATTRACT             ( 71U)    // Притяжение
-#define EFF_LEAPERS             ( 72U)    // Пpыгyны
-#define EFF_PULSE               ( 73U)    // Пульс
-#define EFF_PULSE_WHITE         ( 74U)    // Пульс белый
-#define EFF_PULSE_RAINBOW       ( 75U)    // Пульс радужный
-#define EFF_RADIAL_WAWE         ( 76U)    // Радиальная волна
-#define EFF_RAINBOW_VER         ( 77U)    // Радуга
-#define EFF_RAINBOW             ( 78U)    // Радуга 3D
-#define EFF_SNAKE               ( 79U)    // Радужный змей
-#define EFF_RAIN                ( 80U)    // Разноцветный дождь
-#define EFF_RIVERS              ( 81U)    // Реки Ботсваны
-#define EFF_LIGHTERS            ( 82U)    // Светлячки
-#define EFF_LIGHTER_TRACES      ( 83U)    // Светлячки со шлейфом
-#define EFF_FEATHER_CANDLE      ( 84U)    // Свеча
-#define EFF_AURORA              ( 85U)    // Северное сияние
-#define EFF_SINUSOID3           ( 86U)    // Синусоид
-#define EFF_COLORS              ( 87U)    // Смена цвета
-#define EFF_SNOW                ( 88U)    // Снегопад
-#define EFF_SPECTRUM            ( 89U)    // Спектрум
-#define EFF_SPIRO               ( 90U)    // Спирали
-#define EFF_FLOCK               ( 91U)    // Стая
-#define EFF_FLOCK_N_PR          ( 92U)    // Стая и хищник
-#define EFF_ARROWS              ( 93U)    // Стрелки
-#define EFF_STROBE              ( 94U)    // Строб.Хаос.Дифузия
-#define EFF_SHADOWS             ( 95U)    // Тени
-#define EFF_PACIFIC             ( 96U)    // Тихий океан
-#define EFF_SIMPLE_RAIN         ( 97U)    // Tyчкa в банке
-#define EFF_FIREWORK            ( 98U)    // Фейерверк
-#define EFF_FIREWORK_2          ( 99U)    // Фейерверк 2
-#define EFF_FAIRY               (100U)    // Фея
-#define EFF_COLOR               (101U)    // Цвет
-#define EFF_EFF_SAND            (102U)    // Цветные драже
-#define EFF_COLOR_FRIZZLES      (103U)    // Цветные кудри
-#define EFF_EFF_LOTUS           (104U)    // Цветок лотоса
-#define EFF_SPHERES             (105U)    // Шapы
-#define EFF_NEXUS               (106U)    // Nexus
-#define EFF_CLOCK               (107U)    // Часы
-#define EFF_TEXT                (108U)    // Бeгyщaя cтpoкa
+#define EFF_PLANETEARTH         ( 68U)    // Планета Земля
+#define EFF_BY_EFFECT           ( 69U)    // Побочный эффект
+#define EFF_POPCORN             ( 70U)    // Попкорн
+#define EFF_PRISMATA            ( 71U)    // Призмата
+#define EFF_ATTRACT             ( 72U)    // Притяжение
+#define EFF_LEAPERS             ( 73U)    // Пpыгyны
+#define EFF_PULSE               ( 74U)    // Пульс
+#define EFF_PULSE_WHITE         ( 75U)    // Пульс белый
+#define EFF_PULSE_RAINBOW       ( 76U)    // Пульс радужный
+#define EFF_RADIAL_WAWE         ( 77U)    // Радиальная волна
+#define EFF_RAINBOW_VER         ( 78U)    // Радуга
+#define EFF_RAINBOW             ( 79U)    // Радуга 3D
+#define EFF_SNAKE               ( 80U)    // Радужный змей
+#define EFF_RAIN                ( 81U)    // Разноцветный дождь
+#define EFF_RIVERS              ( 82U)    // Реки Ботсваны
+#define EFF_LIGHTERS            ( 83U)    // Светлячки
+#define EFF_LIGHTER_TRACES      ( 84U)    // Светлячки со шлейфом
+#define EFF_FEATHER_CANDLE      ( 85U)    // Свеча
+#define EFF_AURORA              ( 86U)    // Северное сияние
+#define EFF_SINUSOID3           ( 87U)    // Синусоид
+#define EFF_COLORS              ( 88U)    // Смена цвета
+#define EFF_SNOW                ( 89U)    // Снегопад
+#define EFF_SPECTRUM            ( 90U)    // Спектрум
+#define EFF_SPIRO               ( 91U)    // Спирали
+#define EFF_FLOCK               ( 92U)    // Стая
+#define EFF_FLOCK_N_PR          ( 93U)    // Стая и хищник
+#define EFF_ARROWS              ( 94U)    // Стрелки
+#define EFF_STROBE              ( 95U)    // Строб.Хаос.Дифузия
+#define EFF_SHADOWS             ( 96U)    // Тени
+#define EFF_PACIFIC             ( 97U)    // Тихий океан
+#define EFF_SIMPLE_RAIN         ( 98U)    // Tyчкa в банке
+#define EFF_FIREWORK            ( 99U)    // Фейерверк
+#define EFF_FIREWORK_2          (100U)    // Фейерверк 2
+#define EFF_FAIRY               (101U)    // Фея
+#define EFF_COLOR               (102U)    // Цвет
+#define EFF_EFF_SAND            (103U)    // Цветные драже
+#define EFF_COLOR_FRIZZLES      (104U)    // Цветные кудри
+#define EFF_EFF_LOTUS           (105U)    // Цветок лотоса
+#define EFF_SPHERES             (106U)    // Шapы
+#define EFF_NEXUS               (107U)    // Nexus
+#define EFF_CLOCK               (108U)    // Часы
+#define EFF_TEXT                (109U)    // Бeгyщaя cтpoкa
 
-#define MODE_AMOUNT           (109U)          // количество режимов
+#define MODE_AMOUNT           (110U)          // количество режимов
 
 // ============= МАССИВ НАСТРОЕК ЭФФЕКТОВ ПО УМОЛЧАНИЮ ===================
 // формат записи:
@@ -335,10 +336,11 @@ static const uint8_t defaultSettings[][3] PROGMEM = {
   {  20,   5,  12}, // Павлин
   {  20, 150,   1}, // Песочные часы
   {  25, 195,   1}, // Пейнтбол
-  {  15, 140,  27}, // Пикассо
+  {  15, 220,  40}, // Пикассо
   {  10,  20,  35}, // Плазма
   {  10,  30,  82}, // Плазменная лампа
   {  30,  45,   3}, // Пламя
+  {  25, 128,  75}, // Планета Земля
   {  40, 165,  30}, // Побочный эффект
   {  10,  70,  16}, // Попкорн
   {  15, 100,  88}, // Призмата

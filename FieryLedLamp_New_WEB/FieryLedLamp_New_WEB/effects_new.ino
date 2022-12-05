@@ -13,6 +13,29 @@ uint8_t custom_eff = 0;
   возможно в будущем будет сделано динамическим */
 //byte binImage[2576];
 
+uint8_t const exp_gamma[256] = {
+  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   1,   1,   1,
+  1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+  1,   2,   2,   2,   2,   2,   2,   2,   2,   2,   3,   3,   3,   3,   3,
+  4,   4,   4,   4,   4,   5,   5,   5,   5,   5,   6,   6,   6,   7,   7,
+  7,   7,   8,   8,   8,   9,   9,   9,   10,  10,  10,  11,  11,  12,  12,
+  12,  13,  13,  14,  14,  14,  15,  15,  16,  16,  17,  17,  18,  18,  19,
+  19,  20,  20,  21,  21,  22,  23,  23,  24,  24,  25,  26,  26,  27,  28,
+  28,  29,  30,  30,  31,  32,  32,  33,  34,  35,  35,  36,  37,  38,  39,
+  39,  40,  41,  42,  43,  44,  44,  45,  46,  47,  48,  49,  50,  51,  52,
+  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,
+  68,  70,  71,  72,  73,  74,  75,  77,  78,  79,  80,  82,  83,  84,  85,
+  87,  89,  91,  92,  93,  95,  96,  98,  99,  100, 101, 102, 105, 106, 108,
+  109, 111, 112, 114, 115, 117, 118, 120, 121, 123, 125, 126, 128, 130, 131,
+  133, 135, 136, 138, 140, 142, 143, 145, 147, 149, 151, 152, 154, 156, 158,
+  160, 162, 164, 165, 167, 169, 171, 173, 175, 177, 179, 181, 183, 185, 187,
+  190, 192, 194, 196, 198, 200, 202, 204, 207, 209, 211, 213, 216, 218, 220,
+  222, 225, 227, 229, 232, 234, 236, 239, 241, 244, 246, 249, 251, 253, 254,
+  255
+};
+
+/* binImage буффер для бинарных img размер выбран по размеру подгружаемых картинок */
+byte binImage[2336];
 // ======================================
 // espModeStat default lamp start effect
 // ======================================
@@ -206,17 +229,14 @@ void gradientDownTop( uint8_t bottom, CHSV bottom_color, uint8_t top, CHSV top_c
 // функции для работы с бинарными файлами
 // ======================================
 
-/*
 // --------------------------------------
-// функция чтения бинарного файла изображения
-//    из файловой системы лампы
-
+/* функция чтения бинарного файла изображения
+    из файловой системы лампы */
 void readBinFile(String fileName, size_t len ) {
 
   File binFile = SPIFFS.open("/" + fileName, "r");
   if (!binFile) {
     LOG.println("File not found");
-    printMSG("Bin File not found", true);
     return;
   }
   size_t size = binFile.size();
@@ -249,52 +269,52 @@ void readBinFile(String fileName, size_t len ) {
 }
 
 // --------------------------------------
-// функция получения размера изображения
-//   из заголовка файла
-
-
+/* функция получения размера изображения
+   из заголовка файла
+*/
 uint16_t getSizeValue(byte* buffer, byte b ) {
   return  (buffer[b + 1] << 8) + buffer[b];
 }
 
 // --------------------------------------
-// функция скрола изображения по оси X
-
+/* функция скрола изображения по оси X */
 void scrollImage(uint16_t imgW, uint16_t imgH, uint16_t start_row) {
   const byte HEADER = 16;
   const uint16_t BYTES_PER_PIXEL = 2U;
   // const uint16_t imgSize = imgW * imgH * BYTES_PER_PIXEL + HEADER;
   uint8_t r, g, b;
-  uint8_t padding = (HEIGHT - imgH) / 2;
+  uint8_t padding = floor((HEIGHT - imgH) / 2);
   uint8_t topPos = HEIGHT - padding - 1;
   uint16_t pixIndex;
+  uint8_t delta = 0;
 
   for (uint16_t x = 0; x < WIDTH; x++) {
-    for (uint16_t y = 0; y < imgH; y++) {
-      uint8_t delta = 0;
+    for (uint16_t y = 0; y < (imgH - 1); y++) {
+      if ((start_row + x) > WIDTH) {
+        delta = 1;
+      }
       pixIndex = HEADER + (start_row + x + y * imgW) * BYTES_PER_PIXEL;
 
-      // convert rgb565 to rgb888 -----------
-      // masc rgb565  0xF800 | 0x07E0 | 0x001F
+      /* convert rgb565 to rgb888 -----------
+        masc rgb565  0xF800 | 0x07E0 | 0x001F */
       r = (binImage[pixIndex + 1] & 0xF8);
       g = ((binImage[pixIndex + 1] & 0x07) << 5) + ((binImage[pixIndex] & 0xE0) << 5);
       b = (binImage[pixIndex] & 0x1F) << 3;
-      // вариант с изменением яркости ----
-        //hue = abs(16 - start_row) * 4;
-        //leds[XY(x, topPos - y - delta)] = CRGB(constrain(r - hue, 0, 255), constrain(g - hue, 0, 255), constrain(b - hue, 0, 255));
-      // ------------------------------------
-      
+      /* // вариант с изменением яркости ----
+        hue = abs(16 - start_row) * 4;
+        leds[XY(x, topPos - y - delta)] = CRGB(constrain(r - hue, 0, 255), constrain(g - hue, 0, 255), constrain(b - hue, 0, 255));
+        // ------------------------------------
+      */
       leds[XY(x, topPos - y - delta)] = CRGB(r, g, b);
       // drawPixelXY(x, topPos - y - delta, CRGB(r, g, b));
-      // draw background 
+      /* draw background */
       if ((start_row == 0) && (y == 0) && (padding > 0)) {
         drawRec(0, HEIGHT - padding, WIDTH, HEIGHT, getPixColorXY(0, topPos));
         drawRec(0, 0, WIDTH, padding, getPixColorXY(0, topPos));
       }
-    } // end for y
+    } /* end for y */
   }
 }
-*/
 
 // ======================================
 // New Effects
@@ -2171,7 +2191,7 @@ void Firework() {
   step ++;
 }
 
-/*
+
 // =====================================
 //             Планета Земля
 //              PlanetEarth
@@ -2180,6 +2200,9 @@ void Firework() {
 void PlanetEarth() {
   static uint16_t imgW = 0;
   static uint16_t imgH = 0;
+  if (HEIGHT < 16U) {
+    return;
+  }
   if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     if (selectedSettings) {
@@ -2190,8 +2213,8 @@ void PlanetEarth() {
     loadingFlag = false;
     FPSdelay = 96U;
     FastLED.clear();
-    String file_name = (modes[currentMode].Scale < 50) ? "globe0" : "globe1";
-    readBinFile("bin/" + file_name + ".img", 2048 );
+    String file_name = (modes[currentMode].Scale < 50) ? "globe0" : (HEIGHT >= 24U) ? "globe_big" : "globe1";
+    readBinFile("bin/" + file_name + ".img", 4112 );
 
     imgW = getSizeValue(binImage, 8 );
     imgH = getSizeValue(binImage, 10 );
@@ -2199,21 +2222,28 @@ void PlanetEarth() {
 #ifdef GENERAL_DEBUG
     LOG.printf_P(PSTR("Image • %03d x %02d px\n"), imgW, imgH);
 #endif
-    scrollImage(imgW, imgH, 1U);
+    scrollImage(imgW, imgH, 0U);
     ff_x = 1U;
   }
 
-  // scrool index reverse --> 
+  /* scrool index reverse --> */
   if (ff_x < 1) ff_x = (imgW - imgH);
   scrollImage(imgW, imgH, ff_x - 1);
   ff_x--;
+  //  if (ff_x < 1) ff_x = (imgW - 1);
+  if (ff_x == 0) {
+    scrollImage(imgW, imgH, 0U);
+    ff_x = imgW;
+  } else {
+    scrollImage(imgW, imgH, ff_x);
+  }
 
-  // <-- scrool index ------- 
+  /* <-- scrool index ------- */
   //  if (ff_x > (imgW - imgH)) ff_x = 1U;
   //  scrollImage(imgW, imgH, ff_x - 1);
   //  ff_x++;
 }
-*/
+
 
 // =====================================
 //             Мечта Дизайнера

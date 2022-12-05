@@ -78,8 +78,12 @@ void User_setings ()  {
      saveConfig();                             // Функция сохранения строки конфигурации в файл
      HTTP.send(200, F("text/plain"), F("OK")); // отправляем ответ о выполнении
  });
+   HTTP.on(PSTR("/update"), HTTP_GET, []() {                                            // Запустить страницу обновления по WEB (<IP>/update)
+    if (!handleFileRead("/update.htm"));
+  });
 }
 
+         
 void handle_ssdp()   {
     jsonWrite(configSetup, "SSDP", HTTP.arg("ssdp"));
     SSDP.setName(jsonRead(configSetup, "SSDP"));
