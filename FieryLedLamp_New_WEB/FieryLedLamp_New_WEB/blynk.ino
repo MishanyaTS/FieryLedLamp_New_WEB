@@ -3,8 +3,8 @@
 #define CYCLE_DONT_OFF          (1U)          // Не отключать режим Цикл при выключении лампы = 1U, отключать = 0U
 #define CYCLE_TIMER             (60U)         // Интервал смены эффектов 60 секунд
 #define CYCLE_TIMER_PLUS        (0U)          // + случайное время от нуля до 0U секунд
-#define CYCLE_1ST_EFFECT        (2U)          // Эффекты до "2. Смена цвета" не будут демонстрироваться
-#define CYCLE_LAST_EFFECT       (EFF_RAINBOW_VER)    // Эффекты после "Радуга" не будут демонстрироваться
+#define CYCLE_1ST_EFFECT        (0U)          // С какого эффекта будет начинаться демонстрирация
+#define CYCLE_LAST_EFFECT       (EFF_CLOCK)   // Эффекты после "Часы" не будут демонстрироваться
 
 BLYNK_CONNECTED()
 {
@@ -155,6 +155,24 @@ void updateRemoteBlynkParams(){
     //Blynk.virtualWrite(V5, FavoritesManager::FavoritesRunning ? 1 : 0);
     updatePlayerBlynkParams(FavoritesManager::FavoritesRunning);
   }
+}
+
+// кнопка звук ON / OFF
+BLYNK_WRITE(V8)
+{
+   int value = param.asInt();
+   if (value == 1)
+     processParams("SO_ON", "");
+   else
+     processParams("SO_OFF", "");
+
+   updateRemoteBlynkParams();
+}
+
+// бегунок громкости от 1 до 30
+BLYNK_WRITE(V9)
+{
+    processParams("VOL", param.asString());
 }
 
 void processParams(char *prefix, const char *paramValue)

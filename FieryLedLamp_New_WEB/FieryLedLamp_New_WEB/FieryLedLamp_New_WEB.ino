@@ -637,7 +637,7 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
 		
 	delay (100);	  
     #ifdef USE_BLYNK
-    Blynk.config(USE_BLYNK);
+    Blynk.config(USE_BLYNK, "blynk.tk", 8080);
     #endif
   }     //if (espMode == 0U) {...} else {...
   
