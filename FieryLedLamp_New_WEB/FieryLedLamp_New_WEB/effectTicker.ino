@@ -111,7 +111,7 @@ void effectsTick()
         case EFF_AURORA:              HIGH_DELAY_TICK { effTimer = millis(); polarRoutine();               Eff_Tick (); }  break;  // ( 86U) Северное сияние
         case EFF_SINUSOID3:           HIGH_DELAY_TICK { effTimer = millis(); Sinusoid3Routine();           Eff_Tick (); }  break;  // ( 87U) Синусоид
         case EFF_COLORS:              HIGH_DELAY_TICK { effTimer = millis(); colorsRoutine2();             Eff_Tick (); }  break;  // ( 88U) Смена цвета
-        case EFF_SNOW:                DYNAMIC_DELAY_TICK { effTimer = millis(); snowRoutine();                Eff_Tick (); }  break;  // ( 89U) Снегопад
+        case EFF_SNOW:                DYNAMIC_DELAY_TICK { effTimer = millis(); Snowfall();                Eff_Tick (); }  break;  // ( 89U) Снегопад
         case EFF_SPECTRUM:            DYNAMIC_DELAY_TICK { effTimer = millis(); Spectrum();                   Eff_Tick (); }  break;  // ( 90U) Спектрум
         case EFF_SPIRO:               LOW_DELAY_TICK { effTimer = millis(); spiroRoutine();               Eff_Tick (); }  break;  // ( 91U) Спирали
         case EFF_FLOCK:               LOW_DELAY_TICK { effTimer = millis(); flockRoutine(false);          Eff_Tick (); }  break;  // ( 92U) Стая
