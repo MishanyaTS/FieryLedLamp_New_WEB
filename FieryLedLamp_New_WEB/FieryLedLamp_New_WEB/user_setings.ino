@@ -32,7 +32,7 @@ void User_setings ()  {
  HTTP.on("/cycle_on", handle_cycle_on);   // Вкл/выкл режима Цикл
  HTTP.on("/time_eff", handle_time_eff);   // Время переключения цикла + Dispersion добавочное случайное время от 0 до disp
  HTTP.on("/rnd_cycle", handle_rnd_cycle);   // Перемешать выбранные или по порядку
- HTTP.on("/cycle_allwase", handle_cycle_allwase);   // Запускать режим цыкл после выкл/вкл лампы или нет
+ HTTP.on("/cycle_allwase", handle_cycle_allwase);   // Запускать режим цикл после выкл/вкл лампы или нет
  HTTP.on("/cycle_set", handle_cycle_set);   // Выбор эффектов для цикла
  HTTP.on("/eff_all", handle_eff_all);   // Выбрать все
  HTTP.on("/eff_clr", handle_eff_clr);   // сбросить Выбор
@@ -612,7 +612,7 @@ void handle_rnd_cycle ()  {  // Перемешать выбранные или �
 	HTTP.send(200, F("text/plain"), F("OK"));
 }
 
-void handle_cycle_allwase ()  {  // Запускать режим цыкл после выкл/вкл лампы или нет
+void handle_cycle_allwase ()  {  // Запускать режим цикл после выкл/вкл лампы или нет
 	jsonWrite(configSetup, "cycle_allwase", HTTP.arg("cycle_allwase").toInt());
 	FavoritesManager::UseSavedFavoritesRunning = jsonReadtoInt(configSetup, "cycle_allwase");
     if (!ONflag && !FavoritesManager::UseSavedFavoritesRunning)   {
@@ -1121,7 +1121,7 @@ void handle_folder_select()   {
 void handle_equalizer ()   {
     Equalizer = HTTP.arg("eq").toInt();
     jsonWrite(configSetup, "eq", Equalizer);
-    send_command(0x07,FEEDBACK,0,Equalizer);  // Еквалайзер
+    send_command(0x07,FEEDBACK,0,Equalizer);  // Эквалайзер
     timeout_save_file_changes = millis();
     bitSet (save_file_changes, 0);
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
