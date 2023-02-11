@@ -763,7 +763,9 @@ do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=========
     if (millis() - tmr_clock > 500UL) {         // каждую секунду изменяем
       tmr_clock = millis();                     // обновляем значение счетчика
       dotFlag = !dotFlag;                       // инверсия флага
-      if (!DisplayFlag) display.point(dotFlag); // выкл/выкл двоеточия
+      boolean points[4] = {0,0,0,0};
+      points[1] = dotFlag;
+      if (!DisplayFlag) display.setSegmentPoints(points); // выкл/выкл двоеточия    
       Display_Timer ();
     }
     if (dawnFlag) {
