@@ -202,8 +202,8 @@ uint8_t first_entry = 0;
 uint16_t dawnPosition;
 
 #ifdef USE_MULTIPLE_LAMPS_CONTROL
-char Host1[16], Host2[16], Host3[16];
-uint8_t ml1, ml2, ml3;
+char Host1[16], Host2[16], Host3[16], Host4[16], Host5[16];
+uint8_t ml1, ml2, ml3, ml4, ml5;
 #endif //USE_MULTIPLE_LAMPS_CONTROL
 
 #ifdef MP3_TX_PIN
@@ -763,7 +763,9 @@ do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=========
     if (millis() - tmr_clock > 500UL) {         // каждую секунду изменяем
       tmr_clock = millis();                     // обновляем значение счетчика
       dotFlag = !dotFlag;                       // инверсия флага
-      if (!DisplayFlag) display.point(dotFlag); // выкл/выкл двоеточия
+      boolean points[4] = {0,0,0,0};
+      points[1] = dotFlag;
+      if (!DisplayFlag) display.setSegmentPoints(points); // выкл/выкл двоеточия    
       Display_Timer ();
     }
     if (dawnFlag) {

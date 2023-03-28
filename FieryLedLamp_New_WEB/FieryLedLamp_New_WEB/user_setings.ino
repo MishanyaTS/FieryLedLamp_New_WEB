@@ -772,22 +772,34 @@ void handle_multiple_lamp () {
     jsonWrite(configMultilamp, "ml1", HTTP.arg("ml1").toInt());
     jsonWrite(configMultilamp, "ml2", HTTP.arg("ml2").toInt());
     jsonWrite(configMultilamp, "ml3", HTTP.arg("ml3").toInt());
+    jsonWrite(configMultilamp, "ml4", HTTP.arg("ml4").toInt());
+    jsonWrite(configMultilamp, "ml5", HTTP.arg("ml5").toInt());
     jsonWrite(configMultilamp, "host1", HTTP.arg("host1"));
     jsonWrite(configMultilamp, "host2", HTTP.arg("host2"));
     jsonWrite(configMultilamp, "host3", HTTP.arg("host3"));
+    jsonWrite(configMultilamp, "host4", HTTP.arg("host4"));
+    jsonWrite(configMultilamp, "host5", HTTP.arg("host5"));
     jsonWrite(configMultilamp, "comment1", HTTP.arg("comment1"));
     jsonWrite(configMultilamp, "comment2", HTTP.arg("comment2"));
     jsonWrite(configMultilamp, "comment3", HTTP.arg("comment3"));   
+    jsonWrite(configMultilamp, "comment4", HTTP.arg("comment4"));
+    jsonWrite(configMultilamp, "comment5", HTTP.arg("comment5"));  
     writeFile(F("multilamp_config.json"), configMultilamp );
     ml1 = jsonReadtoInt(configMultilamp, "ml1");
     ml2 = jsonReadtoInt(configMultilamp, "ml2");
     ml3 = jsonReadtoInt(configMultilamp, "ml3");
+    ml4 = jsonReadtoInt(configMultilamp, "ml4");
+    ml5 = jsonReadtoInt(configMultilamp, "ml5");
     str = jsonRead (configMultilamp, "host1");
     str.toCharArray (Host1, str.length() + 1);
     str = jsonRead (configMultilamp, "host2");
     str.toCharArray (Host2, str.length() + 1);
     str = jsonRead (configMultilamp, "host3");
     str.toCharArray (Host3, str.length() + 1);
+    str = jsonRead (configMultilamp, "host4");
+    str.toCharArray (Host4, str.length() + 1);
+    str = jsonRead (configMultilamp, "host5");
+    str.toCharArray (Host5, str.length() + 1);
 	HTTP.send(200, F("text/plain"), F("OK"));
 }
 
@@ -859,6 +871,42 @@ void multiple_lamp_control ()   {
     #ifdef GENERAL_DEBUG
       LOG.print (F("Передача MULTI на IP "));
       LOG.print (Host3);
+      LOG.print (F("  "));
+      LOG.println (outputBuffer);
+    #endif
+    }
+
+     if ( ml4 )   {
+      sprintf_P(outputBuffer, PSTR("MULTI,%u,%u,%u,%u,%u"),
+        ONflag,
+        currentMode,
+        modes[currentMode].Brightness,
+        modes[currentMode].Speed,
+        modes[currentMode].Scale);
+      Udp.beginPacket(Host4,localPort);
+      Udp.write(outputBuffer);
+      Udp.endPacket();
+    #ifdef GENERAL_DEBUG
+      LOG.print (F("Передача MULTI на IP "));
+      LOG.print (Host4);
+      LOG.print (F("  "));
+      LOG.println (outputBuffer);
+    #endif
+    }
+  
+    if ( ml5 )   {
+      sprintf_P(outputBuffer, PSTR("MULTI,%u,%u,%u,%u,%u"),
+        ONflag,
+        currentMode,
+        modes[currentMode].Brightness,
+        modes[currentMode].Speed,
+        modes[currentMode].Scale);
+      Udp.beginPacket(Host5,localPort);
+      Udp.write(outputBuffer);
+      Udp.endPacket();
+    #ifdef GENERAL_DEBUG
+      LOG.print (F("Передача MULTI на IP "));
+      LOG.print (Host5);
       LOG.print (F("  "));
       LOG.println (outputBuffer);
     #endif
