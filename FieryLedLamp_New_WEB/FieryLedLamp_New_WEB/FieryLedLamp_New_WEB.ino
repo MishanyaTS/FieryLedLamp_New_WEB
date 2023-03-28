@@ -202,8 +202,8 @@ uint8_t first_entry = 0;
 uint16_t dawnPosition;
 
 #ifdef USE_MULTIPLE_LAMPS_CONTROL
-char Host1[16], Host2[16], Host3[16];
-uint8_t ml1, ml2, ml3;
+char Host1[16], Host2[16], Host3[16], Host4[16], Host5[16];
+uint8_t ml1, ml2, ml3, ml4, ml5;
 #endif //USE_MULTIPLE_LAMPS_CONTROL
 
 #ifdef MP3_TX_PIN
