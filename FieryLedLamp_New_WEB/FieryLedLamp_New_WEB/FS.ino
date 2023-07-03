@@ -13,7 +13,7 @@ void FS_init(void) {
   HTTP.on("/list", HTTP_GET, handleFileList);
   //загрузка редактора editor
   HTTP.on("/edit", HTTP_GET, []() {
-  if (!handleFileRead("/edit.htm")) HTTP.send(404, F("text/plain"), F("FileNotFound"));
+    if (!handleFileRead("/edit.htm")) HTTP.send(404, F("text/plain"), F("FileNotFound"));
   });
   //Создание файла
   HTTP.on("/edit", HTTP_PUT, handleFileCreate);
@@ -84,7 +84,7 @@ void handleFileUpload() {
 }
 
 void handleFileDelete() {
-   if (HTTP.args() == 0) return HTTP.send(500, F("text/plain"), F("BAD ARGS"));
+  if (HTTP.args() == 0) return HTTP.send(500, F("text/plain"), F("BAD ARGS"));
   String path = HTTP.arg(0);
   if (path == "/")
     return HTTP.send(500, F("text/plain"), F("BAD PATH"));
@@ -147,3 +147,4 @@ void handleFileList() {
   output += "]";
   HTTP.send(200, F("text/json"), output);
 }
+

@@ -7,8 +7,25 @@ static bool Button_Holding = false;
 
 void buttonTick()
 {
-  if (!buttonEnabled)                                       // события кнопки не обрабатываются, если она заблокирована
+  if (!buttonEnabled) // события кнопки не обрабатываются, если она заблокирована , но обрабатывается сброс в default
   {
+    touch.tick();
+    if (touch.isStep() && touch.getHoldClicks() == 14U) {
+        LOG.println("\n*** Reset to Default ***");
+        showWarning(CRGB::Red, 500, 250U);
+        ESP.wdtFeed();
+        setModeSettings();
+        updateSets();    
+        if(FileCopy (F("/default/config.json"), F("/config.json"))) {
+            ESP.wdtFeed();
+            showWarning(CRGB::Green, 500, 250U);
+            ESP.restart();
+        }
+        else {
+            ESP.wdtFeed();
+            showWarning(CRGB::Red, 500, 250U);
+        }
+    }  
     return;
   }
 
@@ -49,6 +66,7 @@ void buttonTick()
         timeout_save_file_changes = millis() - SAVE_FILE_DELAY_TIMEOUT;
         if (!FavoritesManager::FavoritesRunning) EepromManager::EepromPut(modes);
         save_file_changes = 7;
+        timeTick();
     }
     else EepromManager::EepromGet(modes);
     changePower();
@@ -72,7 +90,7 @@ void buttonTick()
   // двухкратное нажатие
   if (clickCount == 2U)
      #ifdef MP3_TX_PIN
-     if (dawnFlag && alarm_sound_flag) {
+     if (dawnFlag) {            //if (dawnFlag && alarm_sound_flag) {
         //myDFPlayer.pause();
         send_command(0x0E,0,0,0);  //Пауза
         mp3_stop = true;
@@ -156,7 +174,7 @@ void buttonTick()
     jsonWrite(configSetup, "sc", modes[currentMode].Scale);
     FastLED.setBrightness(modes[currentMode].Brightness);
     loadingFlag = true;
- 
+
       if (random_on && FavoritesManager::FavoritesRunning)
         selectedSettings = 1U;
 
@@ -201,7 +219,7 @@ void buttonTick()
     if (!ONflag) EepromManager::EepromGet(modes);
     ONflag = true;
     changePower();
-	  jsonWrite(configSetup, "Power", ONflag);
+	jsonWrite(configSetup, "Power", ONflag);
     jsonWrite(configSetup, "tmr", 1);
     #ifdef USE_BLYNK
     updateRemoteBlynkParams();
@@ -322,10 +340,10 @@ if (touch.isStep())
           1, 255);
 		jsonWrite(configSetup, "br", modes[currentMode].Brightness);
         FastLED.setBrightness(modes[currentMode].Brightness);
-                #ifdef TM1637_USE
+        #ifdef TM1637_USE
         DisplayFlag = 3;
         Display_Timer(modes[currentMode].Brightness);
-        #endif 
+        #endif    
 
         #ifdef GENERAL_DEBUG
         LOG.printf_P(PSTR("Новое значение яркости: %d\n"), modes[currentMode].Brightness);
@@ -352,7 +370,7 @@ if (touch.isStep())
         #ifdef TM1637_USE
         DisplayFlag = 3;
         Display_Timer(modes[currentMode].Speed);
-        #endif  
+        #endif    
 
         break;
       }
@@ -386,7 +404,7 @@ if (touch.isStep())
 		ONflag = true;
 		changePower();
 		jsonWrite(configSetup, "Power", ONflag);
-    jsonWrite(configSetup, "tmr", 1);
+        jsonWrite(configSetup, "tmr", 1);
 		#ifdef USE_BLYNK
 		updateRemoteBlynkParams();
 		#endif
@@ -395,6 +413,88 @@ if (touch.isStep())
 		break;
 	  }
 		#endif //BUTTON_CAN_SET_SLEEP_TIMER
+	  case 14U:
+	  {
+          showWarning(CRGB::Red, 500, 250U);
+          ESP.wdtFeed();
+          setModeSettings();
+          updateSets();    
+          if(FileCopy (F("/default/config.json"), F("/config.json"))){
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 2500, 250U);
+              ESP.restart();
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 2500, 250U);
+          }
+          break;
+      }
+      case 19U:
+	  {
+          showWarning(CRGB::Red, 500, 250U);
+          ESP.wdtFeed();
+          setModeSettings();
+          updateSets();    
+          if(FileCopy (F("/default/config.json"), F("/config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/cycle_config.json"), F("/cycle_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/sound_config.json"), F("/sound_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/alarm_config.json"), F("/alarm_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/hardware_config.json"), F("/hardware_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/multilamp_config.json"), F("/multilamp_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/index.json.gz"), F("/index.json.gz"))) {
+             ESP.wdtFeed();
+             showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+             ESP.wdtFeed();
+             showWarning(CRGB::Red, 500, 250U);
+          }
+          ESP.restart();
+          break;
+      }
 
       default:
         break;
@@ -439,11 +539,11 @@ if (touch.isStep())
 		Button_Holding = true;
 		// мигать об успехе операции лучше до вызова changePower(), иначе сперва мелькнут кадры текущего эффекта
 		showWarning(CRGB::Blue, 1500U, 250U);                    // мигание синим цветом 1 секунду
-    EepromManager::EepromGet(modes);
+        EepromManager::EepromGet(modes);
 		ONflag = true;
 		changePower();
 		jsonWrite(configSetup, "Power", ONflag);
-    jsonWrite(configSetup, "tmr", 1);
+        jsonWrite(configSetup, "tmr", 1);
 		#ifdef USE_BLYNK
 		updateRemoteBlynkParams();
 		#endif
@@ -451,7 +551,79 @@ if (touch.isStep())
 		TimerManager::TimerRunning = true;
 		break;		
 	  }
-		#endif //BUTTON_CAN_SET_SLEEP_TIMER	  
+		#endif //BUTTON_CAN_SET_SLEEP_TIMER
+/*        
+      case 14U:
+	  {
+          showWarning(CRGB::Red, 500, 250U);
+          ESP.wdtFeed();
+          if(FileCopy (F("/default/config.json"), F("/config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 2500, 250U);
+              ESP.restart();
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 2500, 250U);
+          }
+          break;
+      }
+      case 19U:
+	  {
+          showWarning(CRGB::Red, 500, 250U);
+          ESP.wdtFeed();
+          if(FileCopy (F("/default/config.json"), F("/config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/cycle_config.json"), F("/cycle_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/sound_config.json"), F("/sound_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/alarm_config.json"), F("/alarm_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/hardware_config.json"), F("/hardware_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/multilamp_config.json"), F("/multilamp_config.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          ESP.restart();
+          break;
+      }
+*/      
 	}
    }
   }

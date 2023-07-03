@@ -215,3 +215,13 @@ float sqrt3(const float x)
   u.i = (1<<29) + (u.i >> 1) - (1<<22);
   return u.x;
 }
+
+uint8_t SpeedFactor(uint8_t spd) {
+  uint8_t result = spd * NUM_LEDS / 1024.0;
+#ifdef GENERAL_DEBUG
+  LOG.printf_P(PSTR("Speed Factor • %03d\n\r"), result);
+#endif
+  return result;
+}
+
+

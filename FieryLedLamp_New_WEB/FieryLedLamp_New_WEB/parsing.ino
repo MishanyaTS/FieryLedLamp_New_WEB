@@ -76,6 +76,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
           #if defined(PHONE_N_MANUAL_TIME_PRIORITY) && defined(USE_NTP)
             stillUseNTP = false;
           #endif
+          getBrightnessForPrintTime();
         }
       }
       #endif // GET_TIME_FROM_PHONE
@@ -291,7 +292,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
       else {
         ONflag = true;
 		jsonWrite(configSetup, "Power", ONflag);
-    EepromManager::EepromGet(modes);
+        EepromManager::EepromGet(modes);
         updateSets();
         changePower();
         loadingFlag = true;
@@ -324,6 +325,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
         save_file_changes = 7;
         //eepromTimeout = millis() - EEPROM_WRITE_DELAY;
         timeout_save_file_changes = millis() - SAVE_FILE_DELAY_TIMEOUT;
+        timeTick();
         changePower();
         loadingFlag = true;
         #ifdef USE_MULTIPLE_LAMPS_CONTROL
@@ -662,7 +664,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
           LOG.println(Pass_STA );
           #endif
           delete [] Pass_STA;
-      }           
+      }
     }          
     else if (!strncmp_P(inputBuffer, PSTR("timeout"), 7)){     // Сохрание таймаута - времени попытки подключения к WiFi роутера
       jsonWrite(configSetup, "TimeOut", BUFF.substring(8, BUFF.length()));        
@@ -704,6 +706,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
               #if defined(PHONE_N_MANUAL_TIME_PRIORITY) && defined(USE_NTP)
                 stillUseNTP = false;
               #endif
+              getBrightnessForPrintTime();
               showWarning(CRGB::Blue, 2000U, 500U);     // мигание голубым цветом 2 секунды (2 раза) - время установлено
             }
             else
@@ -981,7 +984,13 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
      jsonWrite(configSetup, "sp", modes[currentMode].Speed);      //для правильного отображения
      jsonWrite(configSetup, "sc", modes[currentMode].Scale);
      jsonWrite(configSetup, "eff_sel", currentMode);
-     jsonWrite(configSetup, "Power", ONflag);    
+     
+     for ( uint8_t n=0; n< MODE_AMOUNT; n++)
+     {
+         if (eff_num_correct[n] == currentMode) jsonWrite(configSetup, "eff_sel", n);
+     } 
+
+     //jsonWrite(configSetup, "Power", ONflag);    
      }
      inputBuffer[0] = '\0';
      //outputBuffer[0] = '\0';
@@ -1137,7 +1146,7 @@ void sendAlarms(char *outputBuffer)
 {
       char k[2];
 	  bool alarm_change = false;
-    	String configAlarm = readFile(F("alarm_config.json"), 512);
+    	String configAlarm = readFile(F("alarm_config.json"), 512); 
 	#ifdef GENERAL_DEBUG
 		LOG.println ("\nТекущие установки будильника");
     	LOG.println(configAlarm);

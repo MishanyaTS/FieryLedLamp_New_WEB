@@ -118,6 +118,7 @@ if (stillUseNTP)
          #ifdef PHONE_N_MANUAL_TIME_PRIORITY
            stillUseNTP = false;
          #endif
+         getBrightnessForPrintTime();
       }
 //    }//if (!timeSynched || millis() > ntpTimeLastSync + NTP_INTERVAL)
 }
@@ -174,7 +175,8 @@ if (stillUseNTP)
     #ifdef MP3_TX_PIN
       if (minute_tmp != minute(currentLocalTime)) {
           minute_tmp = minute(currentLocalTime);
-          if (minute_tmp == 1) getBrightnessForPrintTime();
+          if (minute_tmp == 1)
+              getBrightnessForPrintTime();
           if (alarm_advert_sound_on && mp3_player_connect == 4 && dawnFlag && dawnPosition >= 245) {
              //Serial.println ("Alarm");
              first_entry = 1;
@@ -311,7 +313,7 @@ void resolveNtpServerAddress(bool &ntpServerAddressResolved)              // ф�
     #ifdef GENERAL_DEBUG
     LOG.print(F("IP адрес NTP: "));
     LOG.println(ntpServerIp);
-    #endif
+    #endif    
     LOG.println(F("\nПодключение к Интернету отсутствует\n"));
     ntpServerAddressResolved = false;
   }
@@ -322,7 +324,11 @@ void resolveNtpServerAddress(bool &ntpServerAddressResolved)              // ф�
     LOG.println(ntpServerIp);
     #endif
 
-    LOG.println(F("Подключение к интернету установлено"));
+#ifdef GEOLOCATION
+    GetGeolocationIP();       //Проверка страны
+#endif //GEOLOCATION
+
+    LOG.println(F("\nПодключение к Интернету установлено\n"));
     ntpServerAddressResolved = true;
   }
 }
@@ -434,26 +440,82 @@ void tm1637_brightness ()   {  // установка яркости в зави�
   {
     if (thisTime >= NIGHT_HOURS_START || thisTime <= NIGHT_HOURS_STOP)   {  // период действия ночного времени
        if (!NIGHT_HOURS_BRIGHTNESS)  DispBrightness = 0;
-       else  DispBrightness = NIGHT_HOURS_BRIGHTNESS;  //NIGHT_HOURS_BRIGHTNESS/32;
+       else  DispBrightness = NIGHT_HOURS_BRIGHTNESS;
     }
     else   {
       if (!DAY_HOURS_BRIGHTNESS) DispBrightness = 0;
-      else DispBrightness = DAY_HOURS_BRIGHTNESS;  //DAY_HOURS_BRIGHTNESS/32;
+      else DispBrightness = DAY_HOURS_BRIGHTNESS;
     }
   }
   else                                                                // ночное время не включает переход через полночь
   {
     if (thisTime >= NIGHT_HOURS_START && thisTime <= NIGHT_HOURS_STOP)   {// период действия ночного времени
        if (!NIGHT_HOURS_BRIGHTNESS)  DispBrightness = 0;
-       else  DispBrightness = NIGHT_HOURS_BRIGHTNESS;  //NIGHT_HOURS_BRIGHTNESS/32U;
+       else  DispBrightness = NIGHT_HOURS_BRIGHTNESS;
     }
     else   {
       if (!DAY_HOURS_BRIGHTNESS) DispBrightness = 0;
-      else DispBrightness = DAY_HOURS_BRIGHTNESS;  //DAY_HOURS_BRIGHTNESS/32U;
+      else DispBrightness = DAY_HOURS_BRIGHTNESS;
     }
   }
 }
 
-#endif
+ #endif
 
 #endif
+
+#ifdef GEOLOCATION 
+void GetGeolocationIP()
+{
+  WiFiClient client;
+  if (!client.connect("ipwho.is", 80)) {
+    Serial.println("Failed to connect with 'ipwho.is' !");
+  }
+  else {
+    uint32_t timeout = millis();
+    client.println("GET /?fields=country_code,timezone HTTP/1.1");
+    client.println("Host: ipwho.is");
+    client.println();
+
+    while (client.available() == 0) {
+      if ((millis() - timeout) > 5000) {
+        Serial.println(">>> Client Timeout !");
+        client.stop();
+        return;
+      }
+    }
+    Serial.println("Response:");
+    //uint16_t size;
+    char c;
+    uint8_t count = 0;
+    String StrResponse;
+    //while ((client.available()) > 0) {
+       // while (((client.available()) > 0) && ((c = (char)client.read()) != '{'));
+       // StrResponse += c; //delay(1);
+       // count++;
+        while (((client.available()) > 0)){
+            c = (char)client.read();
+            //StrResponse += c;
+            if(c == '{') count ++;
+            else
+                if(c == '}'){
+                    count --;
+                    if(!count) StrResponse += c;
+                }
+            if (count > 0) StrResponse += c;
+        }
+        //StrResponse += c;
+      //uint8_t* msg = (uint8_t*)malloc(size);
+      //size = client.read();
+      //Serial.write(msg, size);
+      //free(msg);
+    //}
+    Serial.println(StrResponse);
+    LOG.println(jsonRead(StrResponse,"country_code"));
+    //if(jsonRead(StrResponse,"country_code") == "\x55\x41") Serial.println("++RU++");
+    
+    
+    client.stop();
+  }
+}
+#endif //GEOLOCATION

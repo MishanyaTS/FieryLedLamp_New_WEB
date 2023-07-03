@@ -35,41 +35,77 @@ void mp3_setup()   {
       first_entry = 0;
       delay(mp3_delay);
       send_command(0x0C,FEEDBACK,0,0);  //Сброс модуля
+      mp3_timer = millis();
       #ifdef GENERAL_DEBUG
       LOG.println(F("\n mp3 Reset "));
       #endif
       mp3_player_connect = 2;
       return;
   }
-  tmp = read_command (MP3_READ_TIMEOUT);
-  send_command(6,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0 (от 0 до 30)
+  if(mp3_receive_buf[3] == 0x3F) tmp = mp3_receive_buf[6];
+  else tmp = -1;
+  #ifdef DF_PLAYER_GD3200x
+  delay(mp3_delay*5);  
+  #else
+  delay(mp3_delay);
+  #endif
+  send_command(0x06,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0 (от 0 до 30)
   delay(mp3_delay);
   #ifndef CHECK_MP3_CONNECTION
     if (tmp == -1) tmp = 0;                         // Не проверяем, есть ли связь с МР3 плеером
   #endif  //CHECK_MP3_CONNECTION
   if (tmp != -1) {                                  // Проверяем, есть ли связь с плеером и, если есть, то...
+  #ifdef DF_PLAYER_IS_ORIGINAL
       if (tmp == 1 || tmp == 3) {
           send_command(0x09,FEEDBACK,0,1);          // Устанавливаем источником Flash
-          delay(MP3_DELAY);                         // ----------????????????---------
       }
       if (tmp == 2) {
           send_command(0x09,FEEDBACK,0,2);          // Устанавливаем источником SDкарту
-          delay(MP3_DELAY);
       }
-      //read_command (MP3_READ_TIMEOUT);
-      send_command(0x0E,FEEDBACK,0,0);              //Пауза
+      delay(MP3_DELAY);                             // ----------????????????---------
+  #endif
+/*      //delay(mp3_delay * 2);
+      send_command(0x17,FEEDBACK,0,mp3_folder);     // Предварительная установка папки озвучивания
+      #ifndef DF_PLAYER_GD3200x
+      delay(MP3_DELAY);                             // ----------????????????---------
+      #else
+      delay(mp3_delay * 3);
+      #endif
+      send_command(0x16,FEEDBACK,0,0);              // Пауза Stop
       delay(mp3_delay);
-        delay(mp3_delay);
-        send_command(0x07,FEEDBACK,0,Equalizer);             // Устанавливаем эквалайзер в положение Equalizer
-        delay(mp3_delay);
-        send_command(6,FEEDBACK,0,eff_volume);               // Устанавливаем громкость равной eff_volume (от 0 до 30)
-        mp3_player_connect = 4;
-      LOG.print (F("\nMP3 плеер подключён. "));
+      //delay(mp3_delay);
+
+
+
+      #ifdef DF_PLAYER_GD3200x
+      Serial.println("\n Предварительная установка папки озвучивания");
+      //send_command(0x17,FEEDBACK,0,mp3_folder);     // Предварительная установка папки озвучивания
+      //delay(mp3_delay*3);                             // ----------????????????---------
+      //send_command(0x06,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0 (от 0 до 30)
+      delay(mp3_delay);
+      #endif
+      send_command(0x06,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0 (от 0 до 30)
+      delay(mp3_delay);
+      send_command(0x0E,FEEDBACK,0,0);              // Пауза Stop
+      delay(mp3_delay);
+*/
+
+
+      send_command(0x07,FEEDBACK,0,Equalizer);             // Устанавливаем эквалайзер в положение Equalizer
+      delay(mp3_delay);
+      send_command(6,FEEDBACK,0,eff_volume);               // Устанавливаем громкость равной eff_volume (от 0 до 30)
+      mp3_player_connect = 4;
+      delay(mp3_delay);
+      LOG.print (F("\nMP3 плеер подключен. "));
       if (tmp == 2) LOG.println (F("Установлена ​​SD-карта\n"));
       if (tmp == 1 || tmp == 3) LOG.println (F("Установлена флешка\n"));
       if (tmp == 0) LOG.println (F("SD-карта или Флешка не установлена\n"));
     }
     else { LOG.println (F("\nSD-карта (флешка) не установлена ​​или МР3 плеер не подключен\n")); mp3_player_connect = 0; }
+    //Serial.print ("mp3_folder_last = ");
+    //Serial.println (mp3_folder_last);
+    //Serial.print ("mp3_folder = ");
+    //Serial.println (mp3_folder);
 }
 
 void play_time_ADVERT()   {
@@ -78,32 +114,87 @@ void play_time_ADVERT()   {
        if (first_entry==1 && advert_hour) {
            advert_flag = true;
            first_entry = 3;
-           send_command(0x06,FEEDBACK,0,0);
+           #ifdef DF_PLAYER_GD3200x
+             if ((!pause_on && !mp3_stop) || alarm_sound_flag)
+           #endif
+           {
+           //send_command(0x0E,FEEDBACK,0,0);  //Пауза
+           //delay(mp3_delay);
+           if (day_night) send_command(0x06,FEEDBACK,0,day_advert_volume);  //Громкость днём
+           else send_command(0x06,FEEDBACK,0,night_advert_volume);  //Громкость ночью
            delay(mp3_delay);
+           send_command(0x1A,FEEDBACK,0,1);     //mute on
+           delay(mp3_delay);
+           }
            if ((pause_on || mp3_stop) && !alarm_sound_flag) {  //+++++-----------+++++++++---------+++++++++
               send_command(0x0D,FEEDBACK,0,0);  //Старт
               delay(ADVERT_TIMER_1);
+              if (day_night) send_command(0x06,FEEDBACK,0,day_advert_volume);  //Громкость днём
+              else send_command(0x06,FEEDBACK,0,night_advert_volume);  //Громкость ночью
+              delay(mp3_delay);
+              send_command(0x1A,FEEDBACK,0,1);     //mute on
+              delay(mp3_delay);
+
            }
            int pt_h=(uint8_t)((thisTime - thisTime % 60U) / 60U);
            if (pt_h==0) pt_h=24;
-           send_command(0x13,FEEDBACK,0,pt_h);  //Старт Адверт №... Часы
-           //Serial.print ("Start ADVERT Hour");
-           mp3_timer = millis();
-           delay(mp3_delay);
-           if (day_night) send_command(0x06,FEEDBACK,0,day_advert_volume);  //Громкость днём
-           else send_command(0x06,FEEDBACK,0,night_advert_volume);  //Громкость ночью
+           #ifdef DF_PLAYER_GD3200x
+           {
+           String lng = jsonRead (configSetup, "lang");
+               if(lng == "01") send_command(0x25,FEEDBACK,1,pt_h);  //Старт Адверт1 №... Часы 01
+               else
+               if(lng == "02") send_command(0x25,FEEDBACK,2,pt_h);  //Старт Адверт2 №... Часы 02
+               else
+               if(lng == "03") send_command(0x25,FEEDBACK,3,pt_h);  //Старт Адверт3 №... Часы 03
+               else
+               if(lng == "04") send_command(0x25,FEEDBACK,4,pt_h);  //Старт Адверт4 №... Часы 04
+               else
+               if(lng == "05") send_command(0x25,FEEDBACK,5,pt_h);  //Старт Адверт5 №... Часы 05
+               else
+               if(lng == "06") send_command(0x25,FEEDBACK,6,pt_h);  //Старт Адверт6 №... Часы 06
+               else
+               send_command(0x13,FEEDBACK,0,pt_h);  //Старт Адверт №... Часы
            }
+            #else
+            send_command(0x13,FEEDBACK,0,pt_h);  //Старт Адверт №... Часы
+            #endif  //DF_PLAYER_GD3200x
+           delay(mp3_delay);
+           send_command(0x1A,FEEDBACK,0,0);         // Mute off
+           delay(mp3_delay);
+           //Serial.println ("Start ADVERT Hour");
+           mp3_timer = millis();           
+        }
         if (advert_hour && (millis() - mp3_timer > ADVERT_TIMER_H)) {
+            delay(mp3_delay);
            advert_hour = false;
            int pt_m=(uint8_t)(thisTime % 60U);
-           send_command(0x13,FEEDBACK,0,pt_m+100);  //Старт Адверт №... Минуты
-           //Serial.print ("Start ADVERT Minute");
+           #ifdef DF_PLAYER_GD3200x
+           {
+           String lng = jsonRead (configSetup, "lang");
+               if(lng == "01") send_command(0x25,FEEDBACK,1,pt_m + 100);  //Старт Адверт1 №... минуты 01
+               else
+               if(lng == "02") send_command(0x25,FEEDBACK,2,pt_m + 100);  //Старт Адверт2 №... минуты 02
+               else
+               if(lng == "03") send_command(0x25,FEEDBACK,3,pt_m + 100);  //Старт Адверт3 №... минуты 03
+               else
+               if(lng == "04") send_command(0x25,FEEDBACK,4,pt_m + 100);  //Старт Адверт4 №... минуты 04
+               else
+               if(lng == "05") send_command(0x25,FEEDBACK,5,pt_m + 100);  //Старт Адверт5 №... минуты 05
+               else
+               if(lng == "06") send_command(0x25,FEEDBACK,6,pt_m + 100);  //Старт Адверт6 №... минуты 06
+               else
+               send_command(0x13,FEEDBACK,0,pt_m + 100);  //Старт Адверт №... минуты
+           }
+            #else
+            send_command(0x13,FEEDBACK,0,pt_m + 100);  //Старт Адверт №... минуты
+            #endif  //DF_PLAYER_GD3200x
+           //Serial.println ("Start ADVERT Minute");
            mp3_timer = millis();
         }
         if (!advert_hour && millis() - mp3_timer > ADVERT_TIMER_M) {
-           send_command(0x06,FEEDBACK,0,0);  //Громкость
-           mp3_timer = millis();
-           first_entry =2;
+            send_command(0x06,FEEDBACK,0,0);  //Громкость
+            mp3_timer = millis();
+            first_entry =2;
         }
     }
     else {
@@ -123,22 +214,28 @@ void play_time_ADVERT()   {
   }
 }
 
-void play_sound(uint8_t folder)   {
+void play_sound()   {
     if (!mp3_folder) {
         delay(mp3_delay);
         send_command(0x0E,FEEDBACK,0,0);  //Пауза
         mp3_stop = true;
+        CurrentFolder = mp3_folder;
     }
     else {
         delay(mp3_delay);
-        if ( folder >= 20 && folder <= 90 )
+        uint8_t folder;
+        if ( mp3_folder >= 20 && mp3_folder <= 90 )
         {
-            folder = (uint8_t) random (folder, constrain (folder + 10, 20, 99));
+            CurrentFolder = (uint8_t) random (mp3_folder, constrain (mp3_folder + 10, 20, 99));
         }
-        send_command(0x17,FEEDBACK,0,folder); // Включить непрерывное воспроизведение указанной папки
+        else
+        {
+            CurrentFolder = mp3_folder;
+        }
+        send_command(0x17,FEEDBACK,0,CurrentFolder); // Включить непрерывное воспроизведение указанной папки
         mp3_stop = false;
+        //CurrentFolder = folder;
     }
-    CurrentFolder = folder;
     jsonWrite(configSetup, "fold_sel", CurrentFolder);
     #ifdef GENERAL_DEBUG
      LOG.print (F("\nCurrent folder "));
@@ -163,7 +260,7 @@ void mp3_loop()   {
         mp3_folder = AlarmFolder;  // Папка будильника
         alarm_timer = millis();
         send_command(0x06,FEEDBACK,0,0);  //Громкость
-        play_sound(mp3_folder);
+        play_sound();
         mp3_folder_last = mp3_folder;
         alarm_sound_flag = true;
      }
@@ -191,14 +288,16 @@ void mp3_loop()   {
   if (!mp3_stop && !set_mp3_play_now && !pause_on) {
     send_command(0x0E,FEEDBACK,0,0);  //Пауза
     pause_on = true;
+    delay(mp3_delay);
   }   
   if (!mp3_stop && set_mp3_play_now && pause_on) {
     send_command(0x0D,FEEDBACK,0,0);  //Старт
     pause_on = false;
+    delay(mp3_delay);
   }
   
   
-  if ((set_mp3_play_now) && (mp3_folder_last != mp3_folder)) {
+  if ((set_mp3_play_now) && (mp3_folder_last != mp3_folder)) {  //Проверка необходимости изменения папки озвучкой
         #ifdef MP3_DEBUG
           LOG.print (F("mp3_folder_last = "));
           LOG.println (mp3_folder_last);
@@ -206,7 +305,7 @@ void mp3_loop()   {
           LOG.println (mp3_folder);
         #endif   
     mp3_folder_last = mp3_folder;
-    play_sound(mp3_folder);
+    play_sound();
   }
   
 }

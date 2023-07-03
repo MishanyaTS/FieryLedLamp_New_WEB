@@ -14,12 +14,11 @@
 
 // --- ДЛЯ РАЗРАБОТЧИКОВ ---------------
 
-int16_t offset = WIDTH;
-uint32_t scrollTimer = 0LL;
 
 boolean fillString(const char* text, CRGB letterColor, boolean itsText)
 {
   //CRGB letterColor = CHSV(modes[EFF_TEXT].Scale * 2.5 * 2.5, 255U, 255U);
+  CRGB letterFon = CHSV(ColorRunningText + 96U, 255U, 128U);
 //Serial.println(text);
   if (!text || !strlen(text)) { return true; }
   if (loadingFlag && !itsText) {
@@ -27,10 +26,12 @@ boolean fillString(const char* text, CRGB letterColor, boolean itsText)
     loadingFlag = false;
   }
 
-  if (millis() - scrollTimer >= 255U - modes[EFF_TEXT].Speed)
-  {
-    scrollTimer = millis();
-    FastLED.clear();
+  //if (millis() - scrollTimer >= 255U - modes[EFF_TEXT].Speed)
+  //{
+    //scrollTimer = millis();
+    //if (currentMode == EFF_TEXT)
+    //    fillAll(letterFon);
+    //FastLED.clear();
     uint8_t i = 0, j = 0;
     while (text[i] != '\0')
     {
@@ -40,15 +41,17 @@ boolean fillString(const char* text, CRGB letterColor, boolean itsText)
       }
       else
       {
-        drawLetter(text[i-1], text[i], offset + j * (LET_WIDTH + SPACE), letterColor);
+        drawLetter(text[i-1], text[i], offset + j * (LET_WIDTH + SPACE), letterColor, letterFon);
         i++;
         j++;
       }
     }
-
-    offset--;
-    if (offset < (int16_t)(-j * (LET_WIDTH + SPACE)))       // строка убежала
+  if (millis() - scrollTimer >= 255U - SpeedRunningText){
+      scrollTimer = millis();
+    offset--;                                               // смещение строки слева
+    if (offset < (int16_t)(-j * (LET_WIDTH + SPACE)))       // строка убежала  if (offset < 0) // Строка добежала до края
     {
+        //delay(2000);
       offset = WIDTH + 3;
       return true;
     }
@@ -102,9 +105,12 @@ void printTime(uint32_t thisTime, bool onDemand, bool ONflag) // периоди�
     char stringTime[10U];                                   // буффер для выводимого текста, его длина должна быть НЕ МЕНЬШЕ, чем длина текста + 1
     sprintf_P(stringTime, PSTR("-> %u:%02u"), (uint8_t)((thisTime - thisTime % 60U) / 60U), (uint8_t)(thisTime % 60U));
     loadingFlag = true;
-    FastLED.setBrightness(getBrightnessForPrintTime());
-    delay(1);
-
+    
+    if (!ONflag)
+    {
+        FastLED.setBrightness(getBrightnessForPrintTime());
+        delay(1);
+    }
     #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)        // установка сигнала в пин, управляющий MOSFET транзистором, матрица должна быть включена на время вывода текста
     digitalWrite(MOSFET_PIN, MOSFET_LEVEL);
     #endif
@@ -193,7 +199,7 @@ uint8_t getBrightnessForPrintTime()     // определение яркости
 }
 
 
-void drawLetter(uint8_t subleter, uint8_t letter, int8_t offset, CRGB letterColor)
+void drawLetter(uint8_t subleter, uint8_t letter, int8_t offset, CRGB letterColor, CRGB letterFon)
 {
  
   uint8_t start_pos = 0, finish_pos = LET_WIDTH;
@@ -210,9 +216,14 @@ void drawLetter(uint8_t subleter, uint8_t letter, int8_t offset, CRGB letterColo
   {
     finish_pos = (uint8_t)(WIDTH - offset);
   }
-  for (uint8_t i = start_pos; i < finish_pos; i++)
+  for (uint8_t i = start_pos; i <= finish_pos; i++) //for (uint8_t i = start_pos; i < finish_pos; i++)
   {
     uint8_t thisByte;
+    
+    if (i == finish_pos) thisByte = 0;
+    else
+    {
+    
     if (MIRR_V)
     {
       thisByte = getFont(subleter, letter, (uint8_t)(LET_WIDTH - 1 - i));
@@ -220,6 +231,8 @@ void drawLetter(uint8_t subleter, uint8_t letter, int8_t offset, CRGB letterColo
     else
     {
       thisByte = getFont(subleter, letter, i);
+    }
+    
     }
 
     for (uint8_t j = 0; j < LET_HEIGHT; j++)
@@ -233,22 +246,36 @@ void drawLetter(uint8_t subleter, uint8_t letter, int8_t offset, CRGB letterColo
       {
         if (thisBit)
         {
-          leds[XY(offset + i, TEXT_HEIGHT + j)] = letterColor;
+            leds[XY(offset + i, TEXT_HEIGHT + j)] = letterColor;
         }
         else
         {
-          drawPixelXY(offset + i, TEXT_HEIGHT + j, 0x000000);
+            if (ColorTextFon)
+            {
+                drawPixelXY(offset + i, TEXT_HEIGHT + j, letterFon);
+            }
+            else
+            {
+                drawPixelXY(offset + i, TEXT_HEIGHT + j, 0x000000);
+            }
         }
       }
       else
       {
         if (thisBit)
         {
-          leds[XY(i, offset + TEXT_HEIGHT + j)] = letterColor;
+            leds[XY(i, offset + TEXT_HEIGHT + j)] = letterColor;
         }
         else
         {
-          drawPixelXY(i, offset + TEXT_HEIGHT + j, 0x000000);
+            if (ColorTextFon)
+            {
+                drawPixelXY(offset + i, TEXT_HEIGHT + j, letterFon);
+            }
+            else
+            {
+                drawPixelXY(offset + i, TEXT_HEIGHT + j, 0x000000);
+            }
         }
       }
     }

@@ -19,8 +19,8 @@ static uint16_t x;
 static uint16_t y;
 static uint16_t z;
 
-uint16_t speed = 20;                                        // speed is set dynamically once we've started up
-uint16_t scale = 30;                                        // scale is set dynamically once we've started up
+//uint16_t speed = 20;                                        // speed is set dynamically once we've started up
+//uint16_t scale = 30;                                        // scale is set dynamically once we've started up
 
 // This is the array that we keep our computed noise values in
 #define MAX_DIMENSION (max(WIDTH, HEIGHT))
@@ -30,7 +30,7 @@ uint8_t noise[WIDTH][WIDTH];
 uint8_t noise[HEIGHT][HEIGHT];
 #endif
 
-CRGBPalette16 currentPalette(PartyColors_p);
+//CRGBPalette16 currentPalette(PartyColors_p);
 uint8_t colorLoop = 1;
 uint8_t ihue = 0;
 

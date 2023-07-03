@@ -1,6 +1,9 @@
 #ifdef IR_RECEIVER_USE
-// ----- настройка ИК пульта 1 ---------------------------------
-//      Константа          код      кнопка      действие
+#define USE_2_PULTS  //Закомментируйте эту строку, если вы используете только один пульт
+
+// ----- настройка ИК пульта 1 -----------------------
+
+//      Константа          код      кнопка        действие
 #define IR_ON_OFF      0xFF48B7 // "Power"      Вкл./Выкл. лампы
 #define IR_MUTE        0xFF28D7 // "Mute"       Вкл./Выкл. звук
 #define IR_PREV        0xFF9867 // "Right"      Предыдущий эффект
@@ -33,7 +36,9 @@
 #define IR_8           0xFFF20D // "8"          8
 #define IR_9           0xFFE21D // "9"          9
 #define IR_0           0xFF10EF // "0"          0
- 
+
+#ifdef USE_2_PULTS
+
 // ----- настройка ИК пульта 2 ----------------------------------
 
 #define IR2_ON_OFF      0x40BF00FF // "Play/Pause" Вкл./Выкл. лампы
@@ -68,4 +73,6 @@
 #define IR2_8           0x40BFA857 // "8"
 #define IR2_9           0x40BF6897 // "9"
 #define IR2_0           0x40BF10EF // "0"
+#endif //USE_2_PULTS
+
 #endif  //IR_RECEIVER_USE

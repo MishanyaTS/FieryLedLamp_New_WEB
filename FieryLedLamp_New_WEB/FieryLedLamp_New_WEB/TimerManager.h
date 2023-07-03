@@ -31,20 +31,21 @@ class TimerManager
         delay(2);
         FastLED.show();
         *ONflag = !(*ONflag);
+        jsonWrite(configSetup, "Power", (uint8_t)*ONflag);
 
-         if (!(*ONflag))  {
+        if (!(*ONflag))  {
             //*eepromTimeout = millis() - EEPROM_WRITE_DELAY;
             *timeout_save_file_changes = millis() - SAVE_FILE_DELAY_TIMEOUT;
             if (!FavoritesManager::FavoritesRunning) EepromManager::EepromPut(modes);
             *save_file_changes = 7;
+            timeTick();
         }
         else EepromManager::EepromGet(modes);
         changePower();        
-		jsonWrite(configSetup, "Power", (uint8_t)*ONflag);
         #ifdef USE_MULTIPLE_LAMPS_CONTROL
         multiple_lamp_control ();
         #endif  //USE_MULTIPLE_LAMPS_CONTROL        
-        
+
 //        #ifdef USE_BLYNK короче, раз в Блинке нет управления таймером, то и это мы поддерживать не будем
 //        updateRemoteBlynkParams();
 //        #endif

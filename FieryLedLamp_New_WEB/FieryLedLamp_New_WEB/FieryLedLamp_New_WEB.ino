@@ -1,6 +1,7 @@
 // 
 // 
 //
+// Далее следует код проекта. Не меняйте здесь ничего, если вы не понимаете, к чему это приведет!
 // ======================= ВНИМАНИЕ !!! =============================
 // Все настройки производятся на вкладке Constants.h
 // Почитайте там то, что на русском языке написано.
@@ -15,7 +16,6 @@
 //
 // ================================================ ==================
 //
-// Далее следует код проекта. Не меняйте здесь ничего, если вы не понимаете, к чему это приведет!
 //
 //+++++++++++++++++==========================================+++++++++++++++++++++++++++++++
 //
@@ -63,7 +63,7 @@
 #include "TM1637Display.h"
 #endif
 #ifdef MP3_TX_PIN
-#include <SoftwareSerial.h> // Подключаем библиотеку для работы с последовательным интерфейсом
+#include <SoftwareSerial.h>     // Подключаем библиотеку для работы с последовательным интерфейсом
  #ifdef MP3_DEBUG
   #define FEEDBACK  1
  #else
@@ -71,7 +71,7 @@
  #endif  //MP3_DEBUG
 #endif  //MP3_TX_PIN
 #ifdef IR_RECEIVER_USE
- #include <IRremoteESP8266.h>
+ #include <IRremoteESP8266.h>  // https://github.com/crankyoldgit/IRremoteESP8266
  #include <IRrecv.h>
  #include "IR_Receiver.h"
 #endif  //IR_RECEIVER_USE
@@ -157,13 +157,20 @@ bool dawnFlag = false;
 uint32_t thisTime;
 bool manualOff = false;
 
+int16_t offset = WIDTH;
+uint32_t scrollTimer = 0LL;
+
 uint8_t currentMode;
 bool loadingFlag = true;
 bool ONflag = false;
 //uint32_t eepromTimeout;
 //bool settChanged = false;
-bool buttonEnabled = true; // это важное первоначальное значение. нельзя делать false по умолчанию
-
+#ifdef ESP_USE_BUTTON
+ bool buttonEnabled = true; // Вкл \ откл кнопки
+ #if defined(BUTTON_LOCK_ON_START)
+  bool buttonBlocing = false;
+ #endif
+#endif
 unsigned char matrixValue[8][16]; //это массив для эффекта Огонь
 
 bool TimerManager::TimerRunning = false;
@@ -239,7 +246,7 @@ SoftwareSerial mp3(MP3_RX_PIN, MP3_TX_PIN);  // создаём объект mySo
 uint8_t mp3_receive_buf[10];
 uint8_t effects_folders[MODE_AMOUNT];    // Номера папок для озвучивания
 uint16_t ADVERT_TIMER_H, ADVERT_TIMER_M; // продолжительность озвучивания часов и минут
-uint8_t mp3_delay;                       // Задержка между командами плеера
+uint8_t mp3_delay;                       // Задержка между командами плееру
 
 #endif  //MP3_TX_PIN
 
@@ -278,6 +285,10 @@ uint32_t mem_timer;
  decode_results results;
 #endif  //IR_RECEIVER_USE
 
+uint8_t RuninTextOverEffects = 0;
+uint8_t SpeedRunningText;
+uint8_t ColorRunningText;
+uint8_t ColorTextFon;
 
 void setup()  //==================================================================  void setup()  =========================================================================
 {
@@ -286,15 +297,19 @@ void setup()  //================================================================
   delay(300);
   ESP.wdtEnable(WDTO_8S);
 
-LOG.print(F("\n\n\nSYSTEM START\n"));
+  LOG.print(F("\n\n\nSYSTEM START\n"));
 
-  // часы
-#ifdef TM1637_USE
-LOG.print(F("\nСтарт дисплея TM1637\n"));
-  tmr_clock = millis();                                     // +++ устанавливаем начальное значение счетчика
-  display.setBrightness(DispBrightness);                    // +++ яркость дисплея максимальная = 255
-  display.displayByte(_empty, _empty, _empty, _empty);      // +++ очистка дисплея
-  display.displayByte(_dash, _dash, _dash, _dash);          // +++ отображаем прочерки
+  #if defined(ESP_USE_BUTTON) && defined(BUTTON_LOCK_ON_START)
+    #if (BUTTON_IS_SENSORY == 1)
+        if (digitalRead(BTN_PIN)) {
+            buttonBlocing = true;
+        }
+    #endif
+    #if (BUTTON_IS_SENSORY == 0)
+        if (!digitalRead(BTN_PIN)) {
+            buttonBlocing = true;
+        }
+    #endif
 #endif
 
   // ПИНЫ
@@ -312,6 +327,15 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   #endif
   #endif
   
+  // часы
+#ifdef TM1637_USE
+  LOG.print(F("\nСтарт дисплея TM1637\n"));
+  tmr_clock = millis();                                     // +++ устанавливаем начальное значение счетчика
+  display.setBrightness(DispBrightness);                    // +++ яркость дисплея максимальная = 255
+  display.displayByte(_empty, _empty, _empty, _empty);      // +++ очистка дисплея
+  display.displayByte(_dash, _dash, _dash, _dash);          // +++ отображаем прочерки
+#endif
+
    //HTTP
   User_setings ();
   #ifdef GENERAL_DEBUG  
@@ -322,7 +346,7 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   LOG.print(F("Чтение файла конфигурации\n"));
   #endif
   configSetup = readFile(F("config.json"), 2048);
-  #ifdef GENERAL_DEBUG    
+  #ifdef GENERAL_DEBUG  
   LOG.println(configSetup);
   #endif
   //Настраиваем и запускаем SSDP интерфейс
@@ -355,7 +379,11 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   DAY_HOURS_BRIGHTNESS = jsonReadtoInt(configSetup, "day_bright");
   DONT_TURN_ON_AFTER_SHUTDOWN = jsonReadtoInt(configSetup, "effect_always"); 
   FavoritesManager::rndCycle = jsonReadtoInt(configSetup, "rnd_cycle");  // Перемешать Цикл
-  AUTOMATIC_OFF_TIME = (30UL * 60UL * 1000UL) * ( uint32_t )(jsonReadtoInt(configSetup, "timer5h"));  
+  AUTOMATIC_OFF_TIME = (30UL * 60UL * 1000UL) * ( uint32_t )(jsonReadtoInt(configSetup, "timer5h"));
+  RuninTextOverEffects = jsonReadtoInt(configSetup, "toe");  // Выводить бегущую строку поверх эффектов
+  SpeedRunningText = jsonReadtoInt(configSetup, "spt");  // Скорость бегущей строки
+  ColorRunningText = jsonReadtoInt(configSetup, "sct");  // Цвет бегущей строки
+  ColorTextFon = jsonReadtoInt(configSetup, "ctf");      // Выводить бегущую строку на цветном фоне 
   #ifdef USE_NTP
   (jsonRead(configSetup, "ntp")).toCharArray (NTP_ADDRESS, (jsonRead(configSetup, "ntp")).length()+1);
   #endif
@@ -378,7 +406,7 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   Equalizer = jsonReadtoInt(configSetup, "eq");
   #endif //MP3_TX_PIN
   {
-      String configHardware = readFile(F("hardware_config.json"), 1024);    
+  String configHardware = readFile(F("hardware_config.json"), 1024);    
   current_limit = jsonReadtoInt(configHardware, "cur_lim");
   MATRIX_TYPE = jsonReadtoInt(configHardware, "m_t");
   ORIENTATION = jsonReadtoInt(configHardware, "m_o");
@@ -422,58 +450,6 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   #endif
 
 
-  // КНОПКА
-  #if defined(ESP_USE_BUTTON)
-  touch.setStepTimeout(BUTTON_STEP_TIMEOUT);
-  touch.setClickTimeout(BUTTON_CLICK_TIMEOUT);
-  touch.setDebounce(BUTTON_SET_DEBOUNCE);
-   #if (BUTTON_IS_SENSORY == 1)
-    #if ESP_RESET_ON_START
-    //delay(500);                                            // ожидание инициализации модуля кнопки ttp223 (по спецификации 250мс)
-    if (digitalRead(BTN_PIN))
-    {
-      // wifiManager.resetSettings(); 
-      #ifdef GENERAL_DEBUG                            
-      LOG.println(F("Настройки WiFiManager сброшены"));
-      #endif
-      //buttonEnabled = true;                                   // при сбросе параметров WiFi сразу после старта с зажатой кнопкой, также разблокируется кнопка, если была заблокирована раньше
-	jsonWrite(configSetup, "ssid", "");                          // сброс сохранённых SSID и пароля при старте с зажатой кнопкой, если разрешено
-	jsonWrite(configSetup, "password", "");
-	saveConfig();                                       // Функция сохранения данных во Flash
-    }
-    ESP.wdtFeed();
-    #elif defined(BUTTON_LOCK_ON_START)
-    delay(500);                                            // ожидание инициализации модуля кнопки ttp223 (по спецификации 250мс)
-    if (digitalRead(BTN_PIN))
-      buttonEnabled = false;
-    ESP.wdtFeed();
-    #endif
-   #endif
-   #if (BUTTON_IS_SENSORY == 0)
-    #if ESP_RESET_ON_START
-    delay(500);                                            // ожидание инициализации модуля кнопки ttp223 (по спецификации 250мс)
-    if (!(digitalRead(BTN_PIN)))
-    {
-     // wifiManager.resetSettings(); 
-      #ifdef GENERAL_DEBUG                           
-      LOG.println(F("Настройки WiFiManager сброшены"));
-      #endif
-      //buttonEnabled = true;                                   // при сбросе параметров WiFi сразу после старта с зажатой кнопкой, также разблокируется кнопка, если была заблокирована раньше
-	jsonWrite(configSetup, "ssid", "");                          // сброс сохранённых SSID и пароля при старте с зажатой кнопкой, если разрешено
-	jsonWrite(configSetup, "password", "");
-	saveConfig();                                       // Функция сохранения данных во Flash
-    }
-    ESP.wdtFeed();
-    #elif defined(BUTTON_LOCK_ON_START)
-    delay(500);                                            // ожидание инициализации модуля кнопки ttp223 (по спецификации 250мс)
-    if (!(digitalRead(BTN_PIN)))
-      buttonEnabled = false;
-    ESP.wdtFeed();
-    #endif
-   #endif    
-  #endif
-
-
   // ЛЕНТА/МАТРИЦА
   FastLED.addLeds<WS2812B, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS)/*.setCorrection(TypicalLEDStrip)*/;
   //FastLED.addLeds<WS2812B, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(0xB0FFE0); // Калибровка баланса белого цвета. Последовательность байт RGB (B0-R FF-G E0-B)
@@ -485,6 +461,22 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   FastLED.clear();
   FastLED.show();
 
+
+  // КНОПКА
+  #if defined(ESP_USE_BUTTON)
+  touch.setStepTimeout(BUTTON_STEP_TIMEOUT);
+  touch.setClickTimeout(BUTTON_CLICK_TIMEOUT);
+  touch.setDebounce(BUTTON_SET_DEBOUNCE);
+    #ifdef BUTTON_LOCK_ON_START
+    if (buttonBlocing) {
+       buttonEnabled = false;
+       //jsonWrite(configSetup, "button_on", buttonEnabled);
+       //saveConfig();
+    }
+    ESP.wdtFeed();
+    #endif
+  #endif
+
 #ifdef USE_SHUFFLE_FAVORITES // первоначальная очередь избранного до перемешивания
     for (uint8_t i = 0; i < MODE_AMOUNT; i++)
       shuffleFavoriteModes[i] = i;
@@ -494,7 +486,7 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   // EEPROM
   EepromManager::InitEepromSettings(modes, &(restoreSettings)); // инициализация EEPROM; запись начального состояния настроек, если их там ещё нет; инициализация настроек лампы значениями из EEPROM
  // не придумал ничего лучше, чем делать восстановление настроек по умолчанию в обработчике инициализации EepromManager
-
+    
 
   if(DONT_TURN_ON_AFTER_SHUTDOWN){
       ONflag = false;
@@ -507,13 +499,12 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   modes[currentMode].Brightness = jsonReadtoInt (configSetup, "br");
   modes[currentMode].Speed = jsonReadtoInt (configSetup, "sp");
   modes[currentMode].Scale = jsonReadtoInt (configSetup, "sc");
-
+/*
   {
-    File file = SPIFFS.open("/index.json.gz","r");
-    File Status = SPIFFS.open("/effect2.ini", "r");
-    if (Status && file.size() > 700)
+    File file = SPIFFS.open(F("/index.json.gz"),"r");
+    if ((EEPROM.read(EEPROM_FIRST_RUN_ADDRESS+1)!= MODE_AMOUNT) && (file.size() > 700UL))
     {
-    for (uint8_t i = 0; i < 85; i++) TextTicker[i] = pgm_read_byte(&Default_Settings[i]);
+        for (uint8_t i = 0; i < 85; i++) TextTicker[i] = pgm_read_byte(&Default_Settings[i]);
     SPIFFS.format();
     buttonEnabled = 0;
     currentMode = EFF_TEXT;
@@ -521,8 +512,8 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
     changePower();
     }
     file.close();
-    }
-
+  }
+*/
   first_entry = 1;
   handle_alarm ();
   first_entry = 0;
@@ -537,32 +528,32 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   first_entry = 0;
 #ifdef MP3_TX_PIN
   first_entry = 1;
-  handle_sound_set();
+  handle_sound_set();  //чтение выбранных папок
   first_entry = 0;
 #endif  //MP3_TX_PIN
 #ifdef USE_MULTIPLE_LAMPS_CONTROL  
   multilamp_get ();   // Чтение из файла адресов синхронно управляемых ламп 
 #endif //USE_MULTIPLE_LAMPS_CONTROL
   
-    // MP3 Player
-
+  // MP3 Player
+   
   #ifdef MP3_TX_PIN
    mp3.begin(9600);
    LOG.println (F("\nСтарт MP3 Player"));
    mp3_timer = millis();
    mp3_player_connect = 1;
   #endif 
-
+  
   // UDP
-
-   LOG.printf_P(PSTR("\nСтарт UDP сервера. Порт: %u\n"), localPort);
+  
+  LOG.printf_P(PSTR("\nСтарт UDP сервера. Порт: %u\n"), localPort);
   Udp.begin(localPort);
   
-// WI-FI
-
+  // WI-FI
+  
   LOG.printf_P(PSTR("\nРабочий режим лампы: ESP_MODE = %d\n"), espMode);
 
-  //Запускаем WIFI
+  //Запускаем WIFI  
   WiFi.persistent(false);   // Побережём EEPROM
  
   if (espMode == 0U)                                        // режим WiFi точки доступа
@@ -596,8 +587,8 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   }
   else                                                      // режим WiFi клиента. Подключаемся к роутеру
   {
-    LOG.print(F("\nПодключение к роутеру "));
-	
+    LOG.print(F("\nПодключение к сети "));
+	   
    WiFi.persistent(false);
 
   // Попытка подключения к Роутеру
@@ -635,7 +626,7 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   }
   }
 		
-	delay (100);	  
+	delay (10);	  
     #ifdef USE_BLYNK
     Blynk.config(USE_BLYNK, "blynk.tk", 8080);
     #endif
@@ -666,28 +657,29 @@ LOG.print(F("\nСтарт дисплея TM1637\n"));
   randomSeed(micros());
   changePower();
   loadingFlag = true;
-    #ifdef IR_RECEIVER_USE
-    irrecv.enableIRIn();  // Start the receiver
+  #ifdef IR_RECEIVER_USE
+    irrecv.enableIRIn();  // Start the IR receiver
     IR_Tick_Timer = millis();
     IR_Repeat_Timer = millis();
   #endif  //IR_RECEIVER_USE
-  
-  delay (100);
+
+  //delay (100);
   
 #ifdef TM1637_USE
   DisplayTimer = millis();
  #ifdef MP3_TX_PIN
     CurrentFolder = effects_folders[currentMode];
+    mp3_folder = CurrentFolder;
     jsonWrite(configSetup, "fold_sel", CurrentFolder);
  #endif  //MP3_TX_PIN
 #endif  //TM1637_USE
-  
+
   my_timer=millis();
   
   #ifdef HEAP_SIZE_PRINT
    mem_timer = millis();
   #endif //HEAP_SIZE_PRINT 
-  
+  WiFiClient client;  //Declare an object of class HTTPClient
 }
 
 
@@ -740,7 +732,7 @@ void loop()  //=================================================================
       #endif
         loadingFlag = true;
       #endif  // DISPLAY_IP_AT_START
-		delay (100);	  
+		delay (10);
 	}
  }
  
@@ -765,7 +757,7 @@ do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=========
       dotFlag = !dotFlag;                       // инверсия флага
       boolean points[4] = {0,0,0,0};
       points[1] = dotFlag;
-      if (!DisplayFlag) display.setSegmentPoints(points); // выкл/выкл двоеточия    
+      if (!DisplayFlag) display.setSegmentPoints(points); // выкл/выкл двоеточия 
       Display_Timer ();
     }
     if (dawnFlag) {
@@ -775,13 +767,15 @@ do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=========
   #ifdef MP3_TX_PIN
   switch (mp3_player_connect){
       case 0: break;
-      case 1: if (millis() - mp3_timer > 3000UL || (read_command(10) == 0x3F)){  //if (millis() - mp3_timer > 5000) {
+      case 1: read_command(1);
+              if (millis() > 3000UL || mp3_receive_buf[3] == 0x3F){
                  first_entry = 5;
-                 mp3_timer = millis();
+                 //mp3_timer = millis();
                  mp3_setup ();
                 }
               break;
-      case 2: if ( millis() - mp3_timer > 3500UL ) mp3_player_connect = 3;//if ((millis() - mp3_timer > 5000UL) || (read_command(10) == 0x3F)) mp3_player_connect = 3;
+      case 2: read_command(1);
+              if ( millis() - mp3_timer > 3000UL || mp3_receive_buf[3] == 0x3F) mp3_player_connect = 3;
               break;
       case 3: mp3_setup(); break;
       case 4: mp3_loop(); break;
@@ -790,7 +784,7 @@ do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=========
   #endif
 
  if (Painting == 0) {
-
+     
   effectsTick();
   
   #ifdef HEAP_SIZE_PRINT
@@ -800,7 +794,7 @@ do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=========
        LOG.println(system_get_free_heap_size());
    }
   #endif //HEAP_SIZE_PRINT
-
+  
   #ifdef IR_RECEIVER_USE
        IR_Receive_Handle();
     if (millis() - IR_Tick_Timer > 100)
@@ -813,13 +807,13 @@ do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=========
         }       
     }
   #endif  //IR_RECEIVER_USE
-  
-   //EepromManager::HandleEepromTick(&settChanged, &eepromTimeout, modes);
-    yield();;
+
+  //EepromManager::HandleEepromTick(&settChanged, &eepromTimeout, modes);
+    yield();
 
   //#ifdef USE_NTP
   #if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-      timeTick();
+    timeTick();
   #endif
 
   #ifdef ESP_USE_BUTTON
@@ -829,11 +823,11 @@ do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=========
   #ifdef OTA
   otaManager.HandleOtaUpdate();                             // ожидание и обработка команды на обновление прошивки по воздуху
   #endif
-
+                                                            
   TimerManager::HandleTimer(&ONflag, //&settChanged, //&eepromTimeout, // обработка событий таймера отключения лампы
                             &timeout_save_file_changes,
-                            &save_file_changes, &changePower);  
-
+                            &save_file_changes, &changePower);    
+  
   if (FavoritesManager::HandleFavorites(                    // обработка режима избранных эффектов
       &ONflag,
       &currentMode,
