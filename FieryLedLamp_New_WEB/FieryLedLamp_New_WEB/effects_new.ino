@@ -3378,3 +3378,313 @@ void PlanetEarth() {
   //  scrollImage(imgW, imgH, ff_x - 1);
   //  ff_x++;
 }
+
+// =============== Bamboo ===============
+//             © SlingMaster
+//                 Бамбук
+// --------------------------------------
+uint8_t nextColor(uint8_t posY, uint8_t base, uint8_t next ) {
+  const byte posLine = (HEIGHT > 16) ? 4 : 3;
+  if ((posY + 1 == posLine) | (posY == posLine)) {
+    return next;
+  } else {
+    return base;
+  }
+}
+
+// --------------------------------------
+void Bamboo() {
+  const uint8_t gamma[7] = {0, 32, 144, 160, 196, 208, 230};
+  static float index;
+  const byte DELTA = 4U;
+  const uint8_t VG_STEP = 64U;
+  const uint8_t V_STEP = 32U;
+  const byte posLine = (HEIGHT > 16) ? 4 : 3;
+  const uint8_t SX = 5;
+  const uint8_t SY = 10;
+  static float deltaX = 0;
+  static bool direct = false;
+  uint8_t posY;
+  static uint8_t colLine;
+  const float STP = 0.2;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(100U), random8(128, 255U));
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+    index = STP;
+    uint8_t idx = map(modes[currentMode].Scale, 5, 95, 0U, 6U);;
+    colLine = gamma[idx];
+    step = 0U;
+  }
+
+  // *** ---
+  for (int y = 0; y < HEIGHT + SY; y++) {
+    if (modes[currentMode].Scale < 50U) {
+      if (step % 128 == 0U) {
+        deltaX += STP * ((direct) ? -1 : 1);
+        if ((deltaX > 1) | (deltaX < -1)) direct = !direct;
+      }
+    } else {
+      deltaX = 0;
+    }
+    posY = y;
+    for (int x = 0; x < WIDTH + SX; x++) {
+      if (y == posLine) {
+        drawPixelXYF(x , y - 1, CHSV(colLine, 255U, 128U));
+        drawPixelXYF(x, y, CHSV(colLine, 255U, 96U));
+        if (HEIGHT > 16) {
+          drawPixelXYF(x, y - 2, CHSV(colLine, 10U, 64U));
+        }
+      }
+      if ((x % SX == 0U) & (y % SY == 0U)) {
+        for (int i = 1; i < (SY - 3); i++) {
+          if (i < 3) {
+            posY = y - i + 1 - DELTA + index;
+            drawPixelXYF(x - 3 + deltaX, posY, CHSV(nextColor(posY, 96, colLine), 255U, 255 - V_STEP * i));
+            posY = y - i + index;
+            drawPixelXYF(x + deltaX, posY, CHSV(nextColor(posY, 96, colLine), 255U, 255 - VG_STEP * i));
+          }
+          posY = y - i - DELTA + index;
+          drawPixelXYF(x - 4 + deltaX, posY , CHSV(nextColor(posY, 96, colLine), 180U, 255 - V_STEP * i));
+          posY = y - i + 1 + index;
+          drawPixelXYF(x - 1 + deltaX, posY , CHSV(nextColor(posY, ((i == 1) ? 96 : 80), colLine), 255U, 255 - V_STEP * i));
+        }
+      }
+    }
+    step++;
+  }
+  if (index >= SY)  {
+    index = 0;
+  }
+  fadeToBlackBy(leds, NUM_LEDS, 60);
+  index += STP;
+}
+
+
+// =====================================
+//     Multicolored Dandelions
+//      Base Code © Less Lam
+//          © SlingMaster
+//       Разноцветные одуванчики
+// https://editor.soulmatelights.com/gallery/2007-amber-rain
+// =====================================
+class Circle {
+  public:
+    float thickness = 3.0;
+    long startTime;
+    uint16_t offset;
+    int16_t centerX;
+    int16_t centerY;
+    int hue;
+    int bpm = 10;
+
+    void move() {
+      centerX = random(0, WIDTH);
+      centerY = random(0, HEIGHT);
+    }
+
+    void scroll() {
+      centerX--; // = random(0, WIDTH);
+      if (centerX < 1) {
+        centerX = WIDTH - 1;
+      }
+      centerY++;
+      if (centerY > HEIGHT) {
+        centerY = 0;
+      }
+    }
+    void reset() {
+      startTime = millis();
+      centerX = random(0, WIDTH);
+      centerY = random(0, HEIGHT);
+      hue = random(0, 255);
+      offset = random(0, 60000 / bpm);
+    }
+
+    float radius() {
+      float radius = beatsin16(modes[currentMode].Speed / 2.5, 0, 500, offset) / 100.0;
+      return radius;
+    }
+};
+
+// -----------------------------------
+namespace Circles {
+#define NUMBER_OF_CIRCLES WIDTH/2
+Circle circles[NUMBER_OF_CIRCLES] = {};
+
+void drawCircle(Circle circle) {
+  int16_t centerX = circle.centerX;
+  int16_t centerY = circle.centerY;
+  int hue = circle.hue;
+  float radius = circle.radius();
+
+  int16_t startX = centerX - ceil(radius);
+  int16_t endX = centerX + ceil(radius);
+  int16_t startY = centerY - ceil(radius);
+  int16_t endY = centerY + ceil(radius);
+
+  for (int16_t x = startX; x < endX; x++) {
+    for (int16_t y = startY; y < endY; y++) {
+      int16_t index = XY(x, y);
+      if (index < 0 || index > NUM_LEDS)
+        continue;
+      double distance = sqrt(sq(x - centerX) + sq(y - centerY));
+      if (distance > radius)
+        continue;
+
+      uint16_t brightness;
+      if (radius < 1) { // last pixel
+        // brightness = 0; //255.0 * radius;
+        deltaValue = 20;
+        brightness = 180;
+        // brightness = 0;
+      } else {
+        deltaValue = 200; // 155 + modes[currentMode].Scale;
+        double percentage = distance / radius;
+        double fraction = 1.0 - percentage;
+        brightness = 255.0 * fraction;
+      }
+      leds[index] += CHSV(hue, deltaValue, brightness);
+    }
+  }
+}
+
+// -----------------------------
+void draw(bool setup) {
+  fadeToBlackBy(leds, NUM_LEDS, 100U);
+  // fillAll(CRGB::Black);
+  for (int i = 0; i < NUMBER_OF_CIRCLES; i++) {
+    if (setup) {
+      circles[i].reset();
+    } else {
+      if (circles[i].radius() < 0.5) {
+        circles[i].scroll();
+      }
+    }
+    drawCircle(circles[i]);
+  }
+}
+}; // namespace Circles
+
+// ==============
+void Dandelions() {
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      // scale | speed
+      setModeSettings(random8(1U, 100U), random8(10U, 255U));
+    }
+#endif
+    loadingFlag = false;
+    FastLED.clear();
+    Circles::draw(true);
+    // deltaValue = 150 + modes[currentMode].Scale;
+    deltaValue = 155 + modes[currentMode].Scale;
+  }
+
+  // FPSdelay = SOFT_DELAY;
+  Circles::draw(false);
+}
+
+// ======== Digital Тurbulence =========
+//             © SlingMaster
+//        Цифровая турбулентность
+// =====================================
+void drawRandomCol(uint8_t x, uint8_t y, uint8_t offset, uint32_t count) {
+  const byte STEP = 32;
+  const byte D = HEIGHT / 8;
+  uint8_t color = floor(y / D) * STEP + offset;
+
+  if (count == 0U) {
+    drawPixelXY(x, y, CHSV(color, 255, random8(8U) == 0U ? (step % 2U ? 0 : 255) : 0));
+  } else {
+    drawPixelXY(x, y, CHSV(color, 255, (bitRead(count, y ) == 1U) ? (step % 5U ? 0 : 255) : 0));
+  }
+}
+
+//---------------------------------------
+void Turbulence() {
+  const byte STEP_COLOR = 255 / HEIGHT;
+  const byte STEP_OBJ = 8;
+  const byte DEPTH = 2;
+  static uint32_t count; // 16777216; = 65536
+  uint32_t curColor;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(100U), random8(1, 255U));
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+    step = 0U;
+    deltaValue = 0;
+    hue = 0;
+    if (modes[currentMode].Speed < 20U) {
+      FPSdelay = SpeedFactor(30);
+    }
+    FastLED.clear();
+  }
+
+  deltaValue++;     /* size morph  */
+
+  /* <==== scroll =====> */
+  for (uint8_t y = HEIGHT; y > 0; y--) {
+    drawRandomCol(0, y - 1, hue, count);
+    drawRandomCol(WIDTH - 1, y - 1, hue + 128U, count);
+
+    // left -----
+    for (uint8_t x = CENTER_X_MAJOR - 1; x > 0; x--) {
+      if (x > CENTER_X_MAJOR) {
+        if (random8(2) == 0U) { /* scroll up */
+          CRGB newColor = getPixColorXY(x, y - 1 );
+        }
+      }
+
+      /* ---> */
+      curColor = getPixColorXY(x - 1, y - 1);
+      if (x < CENTER_X_MAJOR - DEPTH / 2) {
+        drawPixelXY(x, y - 1, curColor);
+      } else {
+        if (curColor != 0U) drawPixelXY(x, y - 1, curColor);
+      }
+    }
+
+    // right -----
+    for (uint8_t x = CENTER_X_MAJOR + 1; x < WIDTH; x++) {
+      if (x < CENTER_X_MAJOR + DEPTH ) {
+        if (random8(2) == 0U)  {  /* scroll up */
+          CRGB newColor = getPixColorXY(x, y - 1 );
+        }
+      }
+      /* <---  */
+      curColor = getPixColorXY(x, y - 1);
+      if (x > CENTER_X_MAJOR + DEPTH / 2 ) {
+        drawPixelXY(x - 1, y - 1, curColor);
+      } else {
+        if (curColor != 0U) drawPixelXY(x - 1, y - 1, curColor);
+      }
+    }
+
+    /* scroll center up ---- */
+    for (uint8_t x = CENTER_X_MAJOR - DEPTH; x < CENTER_X_MAJOR + DEPTH; x++) {
+      drawPixelXY(x, y,  makeDarker(getPixColorXY(x, y - 1 ), 128 / y));
+      if (y == 1) {
+        drawPixelXY(x, 0, CRGB::Black);
+      }
+    }
+    /* --------------------- */
+  }
+
+  if (modes[currentMode].Scale > 50) {
+    count++;
+    if (count % 256 == 0U) hue += 16U;
+  } else {
+    count = 0;
+  }
+  step++;
+}
