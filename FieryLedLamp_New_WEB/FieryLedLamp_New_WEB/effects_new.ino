@@ -231,11 +231,9 @@ void gradientDownTop( uint8_t bottom, CHSV bottom_color, uint8_t top, CHSV top_c
 // функции для работы с бинарными файлами
 // ======================================
 
-
 // --------------------------------------
 // функция чтения бинарного файла изображения
-//    из файловой системы лампы
-
+//    из файловой системы лампы 
 void readBinFile(String fileName, size_t len ) {
 
   File binFile = SPIFFS.open("/" + fileName, "r");
@@ -276,30 +274,31 @@ void readBinFile(String fileName, size_t len ) {
 // функция получения размера изображения
 //   из заголовка файла
 
-
 uint16_t getSizeValue(byte* buffer, byte b ) {
   return  (buffer[b + 1] << 8) + buffer[b];
 }
 
 // --------------------------------------
-// функция скрола изображения по оси X
-
+// функция скрола изображения по оси X 
 void scrollImage(uint16_t imgW, uint16_t imgH, uint16_t start_row) {
   const byte HEADER = 16;
   const uint16_t BYTES_PER_PIXEL = 2U;
   // const uint16_t imgSize = imgW * imgH * BYTES_PER_PIXEL + HEADER;
   uint8_t r, g, b;
-  uint8_t padding = (HEIGHT - imgH) / 2;
+  uint8_t padding = floor((HEIGHT - imgH) / 2);
   uint8_t topPos = HEIGHT - padding - 1;
   uint16_t pixIndex;
+  uint8_t delta = 0;
 
   for (uint16_t x = 0; x < WIDTH; x++) {
-    for (uint16_t y = 0; y < imgH; y++) {
-      uint8_t delta = 0;
+    for (uint16_t y = 0; y < (imgH - 1); y++) {
+      if ((start_row + x) > WIDTH) {
+        delta = 1;
+      }
       pixIndex = HEADER + (start_row + x + y * imgW) * BYTES_PER_PIXEL;
 
       // convert rgb565 to rgb888 -----------
-      // masc rgb565  0xF800 | 0x07E0 | 0x001F
+      // masc rgb565  0xF800 | 0x07E0 | 0x001F 
       r = (binImage[pixIndex + 1] & 0xF8);
       g = ((binImage[pixIndex + 1] & 0x07) << 5) + ((binImage[pixIndex] & 0xE0) << 5);
       b = (binImage[pixIndex] & 0x1F) << 3;
