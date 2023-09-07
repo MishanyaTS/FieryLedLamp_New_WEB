@@ -23,7 +23,7 @@ void SSDP_init(void) {
   SSDP.setURL("/");
   SSDP.setModelName(F("FieryLedLamp"));
   SSDP.setModelNumber(jsonRead(configSetup, "SSDP") + FLL_VERSION);  
-  SSDP.setModelURL(F("https://github.com/alvikskor/FieryLedLampMultilingual"));
+  SSDP.setModelURL(F("https://github.com/MishanyaTS/FieryLedLamp_New_WEB"));
   SSDP.setManufacturer(F("alvikskor"));
   SSDP.setManufacturerURL(F("https://github.com/alvikskor/FieryLedLampMultilingual"));
   SSDP.begin();
