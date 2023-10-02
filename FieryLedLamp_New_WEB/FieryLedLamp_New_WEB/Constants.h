@@ -1,10 +1,10 @@
-// Текущая версия : FieryLedLamp v3.51_new_web 121 эффектов
+// Текущая версия : FieryLedLamp v3.6_new_web 121 эффектов
 // ВНИМАНИЕ!!! Большая часть настроек перенесена в файл data/config и может изменяться в процессе эксплуатации лампы.
 // Внимательно читайте файл ПРОЧТИ МЕНЯ!!!.txt и ПРОЧТИ МЕНЯ.doc (тут с картинками)
 
 #pragma once
 
-#define FLL_VERSION           (" Ver.3.51.121")
+#define FLL_VERSION           (" Ver.3.6.121")
 
 //#include <ESP8266WebServer.h>
 

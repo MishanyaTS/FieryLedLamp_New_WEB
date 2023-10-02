@@ -286,9 +286,18 @@ uint32_t mem_timer;
 #endif  //IR_RECEIVER_USE
 
 uint8_t RuninTextOverEffects = 0;
+uint32_t Last_Time_RuninText = 0;
+bool Fill_String = false;
 uint8_t SpeedRunningText;
 uint8_t ColorRunningText;
 uint8_t ColorTextFon;
+
+uint8_t use_static_ip = 0;
+IPAddress Static_IP;//(192,168,0,17);  // Статичний IP
+IPAddress Gateway;//(192,168,0,1);     // Шлюз
+IPAddress Subnet;//(255,255,255,0);    // Маска подсети
+IPAddress DNS1;//(208,67,222,222);     // Серверы DNS. Можно также DNS1(1,1,1,1) или DNS1(8,8,4,4);
+IPAddress DNS2(8,8,8,8);               // Резервный DNS
 
 void setup()  //==================================================================  void setup()  =========================================================================
 {
@@ -437,6 +446,28 @@ void setup()  //================================================================
     }
   }
 
+{
+  String configIP = readFile(F("ip_config.json"), 512);
+  use_static_ip = jsonReadtoInt(configSetup, "s_IP");
+  Static_IP.fromString(jsonRead(configIP, "ip"));
+  Gateway.fromString(jsonRead(configIP, "gateway"));
+  Subnet.fromString(jsonRead(configIP, "subnet"));
+  DNS1.fromString(jsonRead(configIP, "dns"));
+  #ifdef GENERAL_DEBUG
+     LOG.print (F("\nUse Static IP = "));
+     LOG.println (use_static_ip);
+     LOG.print (F("Static IP = "));
+     LOG.println (Static_IP);
+     LOG.print (F("Gateway = "));
+     LOG.println (Gateway);
+     LOG.print (F("Subnet = "));
+     LOG.println (Subnet);
+     LOG.print (F("DNS1 = "));
+     LOG.println (DNS1);
+     LOG.print (F("DNS2 = "));
+     LOG.println (DNS2);
+  #endif
+  }
 
   // TELNET
   #if defined(GENERAL_DEBUG) && GENERAL_DEBUG_TELNET
@@ -620,13 +651,18 @@ void setup()  //================================================================
   }
   else
   {
+
+    if(use_static_ip)
+    {  
+        WiFi.config(Static_IP, Gateway, Subnet, DNS1, DNS2); // Конфигурация под статический IP Address
+    }
+  delay(10);  
     WiFi.begin(SSID_STA, Pass_STA); //WiFi.begin(_ssid.c_str(), _password.c_str()); //
     delete [] Pass_STA;
     delete [] SSID_STA;
   }
   }
-		
-	delay (10);	  
+		   delay (10);	  
     #ifdef USE_BLYNK
     Blynk.config(USE_BLYNK, "blynk.tk", 8080);
     #endif
@@ -727,12 +763,17 @@ void loop()  //=================================================================
         digitalWrite(MOSFET_PIN, MOSFET_LEVEL);
       #endif
         while(!fillString(WiFi.localIP().toString().c_str(), CRGB::White, false)) { delay(1); ESP.wdtFeed(); }
+        if (ColorTextFon  & (!ONflag || (currentMode == EFF_COLOR && modes[currentMode].Scale < 3))){
+          FastLED.clear();
+          delay(1);
+          FastLED.show();
+        }
       #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором, соответственно состоянию вкл/выкл матрицы или будильника
         digitalWrite(MOSFET_PIN, ONflag || (dawnFlag && !manualOff) ? MOSFET_LEVEL : !MOSFET_LEVEL);
       #endif
         loadingFlag = true;
       #endif  // DISPLAY_IP_AT_START
-		delay (10);
+		delay (0);
 	}
  }
  

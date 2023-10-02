@@ -77,6 +77,8 @@ void User_setings ()  {
  HTTP.on("/spt", handle_spt);  // Скорость бегущей строки
  HTTP.on("/sct", handle_sct);  // Цвет бегущей строки
  HTTP.on("/ctf", handle_color_text_fon);  // Выводить бегущую строку на цветном фоне
+ HTTP.on("/s_IP", handle_use_static_ip);  // Использовать для подключения к роутеру статичный IP адрес
+ HTTP.on("/set_ip", handle_set_static_ip);  // Установка статичного IP адреса, шлюза, маски подсети и DNS сервера
  HTTP.on("/ssidap", HTTP_GET, []() {   // Получаем SSID AP со страницы
      jsonWrite(configSetup, "ssidAP", HTTP.arg("ssidAP"));
      jsonWrite(configSetup, "passwordAP", HTTP.arg("passwordAP"));
@@ -1383,7 +1385,25 @@ void handle_color_text_fon ()  { //выводить бегущую строку 
     timeout_save_file_changes = millis();    
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
-  
+
+  void handle_use_static_ip() { 
+  use_static_ip = HTTP.arg("s_IP").toInt();
+  jsonWrite(configSetup, "s_IP", use_static_ip);
+  saveConfig();  
+  HTTP.send(200, F("text/plain"), F("OK"));
+ }
+
+void handle_set_static_ip ()   {
+    uint8_t tmp;
+    String configIP = readFile(F("hardware_config.json"), 2048);
+    jsonWrite(configIP, "ip", HTTP.arg("ip1"));
+    jsonWrite(configIP, "gateway", HTTP.arg("gateway"));
+    jsonWrite(configIP, "subnet", HTTP.arg("subnet"));
+    jsonWrite(configIP, "dns", HTTP.arg("dns"));
+    writeFile(F("ip_config.json"), configIP );
+    HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
+}
+
 bool FileCopy (const String& SourceFile , const String& TargetFile)   {
     File S_File = SPIFFS.open( SourceFile, "r");
     File T_File = SPIFFS.open( TargetFile, "w");

@@ -263,7 +263,11 @@ void Eff_Tick () {
   
   if (RuninTextOverEffects)
   {
-      fillString(TextTicker, CHSV(ColorRunningText, 255U, 255U), true);
+      if (RuninTextOverEffects > 60 || ((thisTime % RuninTextOverEffects == 0U) && Last_Time_RuninText != thisTime) || !Fill_String)
+      {
+        Last_Time_RuninText = thisTime;
+        Fill_String = fillString(TextTicker, CHSV(ColorRunningText, 255U, 255U), true);
+      }
   }
   
   FastLED.show();

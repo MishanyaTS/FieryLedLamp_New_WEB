@@ -17,6 +17,7 @@ void HTTP_init(void) {
     String restart = HTTP.arg("device");          // Получаем значение device из запроса
     if (restart == "ok") {                         // Если значение равно Ок
       HTTP.send(200, F("text / plain"), F("Reset OK")); // Oтправляем ответ Reset OK
+      delay(1000);
       ESP.restart();                                // перезагружаем модуль
     }
     else {                                        // иначе

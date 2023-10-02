@@ -45,7 +45,7 @@ void mp3_setup()   {
   if(mp3_receive_buf[3] == 0x3F) tmp = mp3_receive_buf[6];
   else tmp = -1;
   #ifdef DF_PLAYER_GD3200x
-  delay(mp3_delay*5);  
+  delay(mp3_delay * 5); 
   #else
   delay(mp3_delay);
   #endif
@@ -74,21 +74,23 @@ void mp3_setup()   {
       send_command(0x16,FEEDBACK,0,0);              // Пауза Stop
       delay(mp3_delay);
       //delay(mp3_delay);
-
+*/
 
 
       #ifdef DF_PLAYER_GD3200x
       Serial.println("\n Предварительная установка папки озвучивания");
-      //send_command(0x17,FEEDBACK,0,mp3_folder);     // Предварительная установка папки озвучивания
-      //delay(mp3_delay*3);                             // ----------????????????---------
-      //send_command(0x06,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0 (от 0 до 30)
+      //send_command(0x06,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0
+      send_command(0x17,FEEDBACK,0,mp3_folder);            // Предварительная установка папки озвучивания
+      //send_command(0x0F,FEEDBACK,99,1);                    // Старт 1-й трек в 99-й папке (Тишина)
+      delay(mp3_delay * 10);                                    // ----------????????????---------
+      send_command(0x06,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0
       delay(mp3_delay);
+      //send_command(0x06,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0
+      //delay(MP3_DELAY);
+      send_command(0x0E,FEEDBACK,0,0);                     // Пауза Stop
+
       #endif
-      send_command(0x06,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0 (от 0 до 30)
-      delay(mp3_delay);
-      send_command(0x0E,FEEDBACK,0,0);              // Пауза Stop
-      delay(mp3_delay);
-*/
+
 
 
       send_command(0x07,FEEDBACK,0,Equalizer);             // Устанавливаем эквалайзер в положение Equalizer
@@ -127,12 +129,25 @@ void play_time_ADVERT()   {
            delay(mp3_delay);
            }
            if ((pause_on || mp3_stop) && !alarm_sound_flag) {  //+++++-----------+++++++++---------+++++++++
+            //#ifdef DF_PLAYER_GD3200x
+              send_command(0x06,FEEDBACK,0,0);
+              delay(mp3_delay);
               send_command(0x0D,FEEDBACK,0,0);  //Старт
+              //send_command(0x0F,FEEDBACK,99,1);  //Старт 1-й трек в 99-й папке (Тишина)
+              //#else
+              //send_command(0x0D,FEEDBACK,0,0);  //Старт
+              //#endif
+              #ifdef DF_PLAYER_GD3200x
+              delay(mp3_delay * 5);
+              #else
               delay(ADVERT_TIMER_1);
+              #endif
               if (day_night) send_command(0x06,FEEDBACK,0,day_advert_volume);  //Громкость днём
               else send_command(0x06,FEEDBACK,0,night_advert_volume);  //Громкость ночью
+              #ifndef DF_PLAYER_GD3200x
               delay(mp3_delay);
               send_command(0x1A,FEEDBACK,0,1);     //mute on
+              #endif
               delay(mp3_delay);
 
            }
@@ -198,7 +213,11 @@ void play_time_ADVERT()   {
         }
     }
     else {
-        if (millis() - mp3_timer > ADVERT_TIMER_2) {
+        #ifdef DF_PLAYER_GD3200x
+        if (millis() - mp3_timer > (mp3_delay * 12)) {
+        #else
+        if (millis() - mp3_timer > ADVERT_TIMER_2){
+        #endif
            advert_flag = false;
            first_entry =0;
            delay(mp3_delay);    
