@@ -121,7 +121,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
         if (random_on && FavoritesManager::FavoritesRunning)
           selectedSettings = 1U;
       
-      FastLED.setBrightness(modes[currentMode].Brightness);
+      SetBrightness(modes[currentMode].Brightness);
     }
 
     #ifdef MP3_TX_PIN
@@ -170,6 +170,9 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
     #ifdef USE_BLYNK_PLUS
         updateRemoteBlynkParams();
     #endif
+    #ifdef USE_MULTIPLE_LAMPS_CONTROL
+        repeat_multiple_lamp_control = true;
+    #endif  //USE_MULTIPLE_LAMPS_CONTROL
     }
     
     else if (!strncmp_P(inputBuffer, PSTR("SO_ON"), 5))
@@ -189,6 +192,9 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
   #ifdef USE_BLYNK_PLUS
       updateRemoteBlynkParams();
   #endif
+  #ifdef USE_MULTIPLE_LAMPS_CONTROL
+        repeat_multiple_lamp_control = true;
+    #endif  //USE_MULTIPLE_LAMPS_CONTROL
     }
 
     else if (!strncmp_P(inputBuffer, PSTR("SO_OFF"), 6))
@@ -208,6 +214,9 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
   #ifdef USE_BLYNK_PLUS
       updateRemoteBlynkParams();
   #endif
+  #ifdef USE_MULTIPLE_LAMPS_CONTROL
+        repeat_multiple_lamp_control = true;
+    #endif  //USE_MULTIPLE_LAMPS_CONTROL
     }    
     #endif  //MP3_TX_PIN
 
@@ -229,7 +238,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
       #ifdef USE_MULTIPLE_LAMPS_CONTROL
       repeat_multiple_lamp_control = true;
       #endif  //USE_MULTIPLE_LAMPS_CONTROL
-      FastLED.setBrightness(modes[currentMode].Brightness);
+      SetBrightness(modes[currentMode].Brightness);
       //loadingFlag = true; //не хорошо делать перезапуск эффекта после изменения яркости, но в некоторых эффектах от чётности яркости мог бы зависеть внешний вид
       //settChanged = true;
       //eepromTimeout = millis();
@@ -285,7 +294,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
         #ifdef TM1637_USE
         clockTicker_blink();
         #endif
-        FastLED.setBrightness(modes[currentMode].Brightness);
+        SetBrightness(modes[currentMode].Brightness);
         changePower();
         sendCurrent(inputBuffer);
       }
@@ -293,11 +302,13 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
         ONflag = true;
 		jsonWrite(configSetup, "Power", ONflag);
         EepromManager::EepromGet(modes);
+        timeout_save_file_changes = millis();
+        bitSet (save_file_changes, 0);
         updateSets();
         changePower();
         loadingFlag = true;
         #ifdef USE_MULTIPLE_LAMPS_CONTROL
-        multiple_lamp_control ();
+        repeat_multiple_lamp_control=true;
         #endif  //USE_MULTIPLE_LAMPS_CONTROL
         sendCurrent(inputBuffer);
         #ifdef USE_BLYNK_PLUS
@@ -314,7 +325,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
         #ifdef TM1637_USE
         clockTicker_blink();
         #endif
-        FastLED.setBrightness(modes[currentMode].Brightness);
+        SetBrightness(modes[currentMode].Brightness);
         changePower();
         sendCurrent(inputBuffer);
       }
@@ -651,23 +662,8 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
       saveConfig();            
     }
     else if (!strncmp_P(inputBuffer, PSTR("passw"), 5)){        // Сохрание пароля для подключения к WiFi роутера 
-      //jsonWrite(configSetup, "password", BUFF.substring(6, BUFF.length()));        
-      //saveConfig();            
-      String password = BUFF.substring(6, BUFF.length());
-      if (password != ""){
-          char* Pass_STA = new char[64];
-          password.toCharArray(Pass_STA, password.length()+1);
-          for (uint8_t address = 0; address < 64; address ++){
-              EEPROM.put((EEPROM_PASSWORD_START_ADDRESS + address), Pass_STA[address]);
-              EEPROM.commit();
-              if (Pass_STA[address] == 0) break;
-          }
-          #ifdef GENERAL_DEBUG
-          LOG.print("\nPass_STA = ");
-          LOG.println(Pass_STA );
-          #endif
-          delete [] Pass_STA;
-      }
+      jsonWrite(configSetup, "password", BUFF.substring(6, BUFF.length()));        
+      saveConfig();            
     }          
     else if (!strncmp_P(inputBuffer, PSTR("timeout"), 7)){     // Сохрание таймаута - времени попытки подключения к WiFi роутера
       jsonWrite(configSetup, "TimeOut", BUFF.substring(8, BUFF.length()));        
@@ -926,16 +922,18 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
 #ifdef USE_MULTIPLE_LAMPS_CONTROL
     else if (!strncmp_P(inputBuffer, PSTR("MULTI"), 5)) { // Управление несколькими лампами
       uint8_t valid = 0, i = 0;
-      while (inputBuffer[i])   {   //пакет должен иметь вид MULTI,%U,%U,%U,%U,%U соответственно ON/OFF,№эффекта,яркость,скорость,масштаб
+      while (inputBuffer[i])   {   //пакет должен иметь вид MULTI,%U,%U,%U,%U,%U соответственно ON/OFF,№эффекта,яркость,скорость,масштаб или + №текущей папки или + озвучивание_on/off, громкость
         if (inputBuffer[i] == ',')  { valid++; } //Проверка на правильность пакета (по количеству запятых)
         i++;       
       }
-      if (valid == 5)   {   //Если пакет правильный выделяем лексемы,разделённые запятыми, и присваиваем параметрам эффектов
+      if (valid == 5 || valid == 6 || valid == 8)   {   //Если пакет правильный выделяем лексемы,разделённые запятыми, и присваиваем параметрам эффектов
         char *tmp = strtok (inputBuffer, ","); //Первая лексема MULTI пропускается
         tmp = strtok (NULL, ",");
+        bool onflg = false;
         if (ONflag != atoi(tmp))   {
 	    ONflag = atoi( tmp);
-        changePower();   // Активацмя состояния ON/OFF
+        onflg = true;
+        //changePower();   // Активация состояния ON/OFF
         }
         tmp = strtok (NULL, ",");
         if (currentMode != atoi(tmp))   {
@@ -947,20 +945,47 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
 	      modes[currentMode].Speed = atoi (tmp);
           tmp = strtok (NULL, ",");
 	      modes[currentMode].Scale = atoi (tmp);
+        #ifdef MP3_TX_PIN
+          if (valid == 8) {
+          tmp = strtok (NULL, ",");
+        eff_sound_on = atoi (tmp);
+          tmp = strtok (NULL, ",");
+        eff_volume = atoi (tmp);
+          if (!dawnFlag && ONflag && eff_sound_on) {
+            send_command(6,FEEDBACK,0,eff_volume); // Меняем громкость
+            delay(mp3_delay);
+          }
+          }
+          if (valid == 8 || valid == 6) {
+            tmp = strtok (NULL, ",");
+            mp3_folder=effects_folders[currentMode];
+            mp3_folder_last = mp3_folder;
+            if (atoi (tmp) != CurrentFolder) {
+              CurrentFolder = atoi (tmp);
+              if (!dawnFlag && ONflag && eff_sound_on) {
+                send_command(0x17,FEEDBACK,0,CurrentFolder); // Включить непрерывное воспроизведение указанной папки
+                //mp3_folder_change = 0;
+                CurrentFolder_last = CurrentFolder;
+                mp3_stop = false;
+                delay(mp3_delay);
+              }
+            }
+          }
+          #endif //MP3_TX_PIN
           loadingFlag = true; // Перезапуск эффекта
-          FastLED.setBrightness(modes[currentMode].Brightness); //Применение яркости
+          SetBrightness(modes[currentMode].Brightness); //Применение яркости
           }
           else   {
             currentMode = MODE_AMOUNT - 3;  //Если полученный номер эффекта больше , чем количество эффектов в лампе,включаем последний "адекватный" эффект
             loadingFlag = true; // Перезапуск эффекта
-            FastLED.setBrightness(modes[currentMode].Brightness); //Применение яркости
+            SetBrightness(modes[currentMode].Brightness); //Применение яркости
           }
         }
         else   {
             tmp = strtok (NULL, ",");
             if (modes[currentMode].Brightness != atoi(tmp))   {
                 modes[currentMode].Brightness = atoi (tmp);
-                FastLED.setBrightness(modes[currentMode].Brightness); //Применение яркости
+                SetBrightness(modes[currentMode].Brightness); //Применение яркости
             }
             tmp = strtok (NULL, ",");
             if (modes[currentMode].Speed != atoi(tmp))   {
@@ -972,6 +997,38 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
                 modes[currentMode].Scale = atoi (tmp);
                 loadingFlag = true; // Перезапуск эффекта
             }
+            #ifdef MP3_TX_PIN
+          if (valid == 8) {
+          tmp = strtok (NULL, ",");
+        eff_sound_on = atoi (tmp);
+          tmp = strtok (NULL, ",");
+        eff_volume = atoi (tmp);
+          if (!dawnFlag && ONflag && eff_sound_on) {
+            send_command(6,FEEDBACK,0,eff_volume); // Меняем громкость
+            delay(mp3_delay);
+          }
+          }
+          if (valid == 8 || valid == 6) {
+            tmp = strtok (NULL, ",");
+            if (atoi (tmp) != CurrentFolder) {
+              CurrentFolder = atoi (tmp);
+              if (eff_sound_on && !dawnFlag && ONflag) {
+                send_command(0x17,FEEDBACK,0,CurrentFolder); // Включить непрерывное воспроизведение указанной папки
+                mp3_stop = false;
+                //mp3_folder_change = 0;
+                CurrentFolder_last = CurrentFolder;
+                delay(mp3_delay);
+                //send_sound_flag = 1;
+              }
+            }
+          }
+          #endif //MP3_TX_PIN
+        }
+        if (onflg) {
+          #ifdef MP3_TX_PIN
+            if (ONflag) mp3_folder=effects_folders[currentMode];
+            #endif
+            changePower();   // Активация состояния ON/OFF
         }
  #ifdef GENERAL_DEBUG
      LOG.print ("Принято MULTI ");
@@ -980,6 +1037,11 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
      LOG.println (modes[currentMode].Brightness);
      LOG.println (modes[currentMode].Speed);
      LOG.println (modes[currentMode].Scale);
+     #ifdef MP3_TX_PIN
+     LOG.println (CurrentFolder);
+     LOG.println (eff_sound_on);
+     LOG.println (eff_volume);
+     #endif //MP3_TX_PIN
  #endif  //GENERAL_DEBUG
      //changePower();   // Активацмя состояния ON/OFF
      //loadingFlag = true; // Перезапуск эффекта
@@ -988,6 +1050,11 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
      jsonWrite(configSetup, "sp", modes[currentMode].Speed);      //для правильного отображения
      jsonWrite(configSetup, "sc", modes[currentMode].Scale);
      jsonWrite(configSetup, "eff_sel", currentMode);
+     #ifdef MP3_TX_PIN
+     jsonWrite(configSetup, "on_sound", constrain(eff_sound_on, 0, 1));
+     jsonWrite(configSetup, "vol", eff_volume);
+     jsonWrite(configSetup, "fold_sel", CurrentFolder);
+     #endif //MP3_TX_PIN
      
      for ( uint8_t n=0; n< MODE_AMOUNT; n++)
      {
@@ -1081,7 +1148,7 @@ void sendCurrent(char *outputBuffer)
   sprintf_P(outputBuffer, PSTR("%s %u"), outputBuffer, (uint8_t)TimerManager::TimerRunning);
   #ifdef ESP_USE_BUTTON
   sprintf_P(outputBuffer, PSTR("%s %u"), outputBuffer, (uint8_t)buttonEnabled);
- #else
+  #else
   sprintf_P(outputBuffer, PSTR("%s %u"), outputBuffer, 0);
   #endif //ESP_USE_BUTTON
   

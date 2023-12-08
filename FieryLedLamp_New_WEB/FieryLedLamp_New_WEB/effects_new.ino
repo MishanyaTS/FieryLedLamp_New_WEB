@@ -3687,3 +3687,66 @@ void Turbulence() {
   }
   step++;
 }
+
+// ============ Serpentine =============
+//             © SlingMaster
+//              Серпантин
+// =====================================
+void Serpentine() {
+  const byte PADDING = HEIGHT * 0.25;
+  const byte BR_INTERWAL = 64 / HEIGHT;
+  const byte DELTA = WIDTH  * 0.25;
+  // ---------------------
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(random8(4, 50), random8(4, 254U));
+    }
+#endif
+    loadingFlag = false;
+    deltaValue = 0;
+    hue = 0;
+    FastLED.clear();
+  }
+  // ---------------------
+
+  byte step1 = map8(modes[currentMode].Speed, 10U, 60U);
+  uint16_t ms = millis();
+  double freq = 3000;
+  float mn = 255.0 / 13.8;
+  byte fade = 180 - abs(128 - step);
+  fadeToBlackBy(leds, NUM_LEDS, fade);
+
+  // -----------------
+  for (uint16_t y = 0; y < HEIGHT; y++) {
+    uint32_t yy = y * 256;
+    uint32_t x1 = beatsin16(step1, WIDTH, (HEIGHT - 1) * 256, WIDTH, y * freq + 32768) / 2;
+
+    // change color --------
+    // CRGB col1 = CHSV(ms / 29 + y * 255 / (HEIGHT - 1) + 128, 255 - abs(128 - step)/4, qadd8(hue, beatsin8(step1, 60, 255U, 0, y * mn + 128)));
+    // CRGB col3 = CHSV(ms / 29 + y * 255 / (HEIGHT - 1), 255, qadd8(hue, beatsin8(step1, 60, 255U, 0, y * mn + 128)) );
+    CRGB col1 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1) + 128, 255, 255 - (HEIGHT - y) * BR_INTERWAL);
+    CRGB col2 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1), 255, 255 - (HEIGHT - y) * BR_INTERWAL);
+    // CRGB col3 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1) + step, 255, 255 - (HEIGHT - y) * BR_INTERWAL - fade);
+
+    wu_pixel( x1 + hue * DELTA, yy - PADDING * (255 - hue), &col1);
+    wu_pixel( abs((WIDTH - 1) * 256 - (x1 + hue * DELTA)), yy - PADDING * hue, &col2);
+    //    wu_pixel( x1 + hue * DELTA, yy - PADDING * 3 * (255 - hue), &col3);
+  }
+
+  step++;
+  if (step % 64) {
+    if (deltaValue == 0) {
+      hue++;
+      if (hue >= 255) {
+        deltaValue = 1;
+      }
+    } else {
+      hue--;
+      if (hue < 1) {
+        deltaValue = 0;
+      }
+    }
+  }
+}

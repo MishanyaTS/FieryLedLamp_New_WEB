@@ -158,7 +158,7 @@ void printTime(uint32_t thisTime, bool onDemand, bool ONflag) // периоди�
     }
     //Serial.print("ColorTextFon=");
     //Serial.println(ColorTextFon);
-    FastLED.setBrightness(modes[currentMode].Brightness);
+    SetBrightness(modes[currentMode].Brightness);
     loadingFlag = true;
   }
 

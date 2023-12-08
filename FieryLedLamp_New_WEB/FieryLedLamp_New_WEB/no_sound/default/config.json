@@ -1,7 +1,9 @@
-{"SSDP":"Led Lamp WEB",
+{
+"SSDP":"Led Lamp WEB",
 "ssidAP":"Led Lamp WEB",
 "passwordAP":"12341234",
 "ssid":"",
+"password":"",
 "timezone":5,
 "Summer_Time":0,
 "favorit":0,

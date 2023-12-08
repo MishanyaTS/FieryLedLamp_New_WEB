@@ -28,7 +28,7 @@ void IR_Receive_Handle ()   {       // Обработка принятого с�
 	    jsonWrite(configSetup, "br", modes[currentMode].Brightness);
         jsonWrite(configSetup, "sp", modes[currentMode].Speed);
         jsonWrite(configSetup, "sc", modes[currentMode].Scale);
-        FastLED.setBrightness(modes[currentMode].Brightness);
+        SetBrightness(modes[currentMode].Brightness);
         loadingFlag = true;
         //settChanged = true;
         //eepromTimeout = millis();
@@ -388,7 +388,7 @@ void IR_Power()   {
             #ifdef TM1637_USE
             clockTicker_blink();
             #endif
-            FastLED.setBrightness(modes[currentMode].Brightness);
+            SetBrightness(modes[currentMode].Brightness);
             changePower();
        }
        return;
@@ -404,7 +404,11 @@ void IR_Power()   {
             save_file_changes = 7;
             timeTick();
         }
-        else EepromManager::EepromGet(modes);
+        else {
+            EepromManager::EepromGet(modes);
+            timeout_save_file_changes = millis();
+            bitSet (save_file_changes, 0);
+        }
         changePower();
     }
     loadingFlag = true;
@@ -419,7 +423,12 @@ void IR_Power()   {
     updateRemoteBlynkParams();
     #endif
     #ifdef USE_MULTIPLE_LAMPS_CONTROL
-    multiple_lamp_control ();
+    if (ONflag) {
+        repeat_multiple_lamp_control=true;
+    }
+    else {
+        multiple_lamp_control ();
+    }
     #endif  //USE_MULTIPLE_LAMPS_CONTROL
 }
 
@@ -448,6 +457,9 @@ void Mute()   {                // Вкл / Откл звука
     jsonWrite(configSetup, "on_sound", constrain (eff_sound_on,0,1));
     timeout_save_file_changes = millis();
     bitSet (save_file_changes, 0);
+    #ifdef USE_MULTIPLE_LAMPS_CONTROL
+    repeat_multiple_lamp_control = true;
+    #endif  //USE_MULTIPLE_LAMPS_CONTROL
   #endif  //MP3_TX_PIN
 }
 
@@ -492,7 +504,7 @@ void Prev_Next_eff(bool direction)   {
 	jsonWrite(configSetup, "br", modes[currentMode].Brightness);
     jsonWrite(configSetup, "sp", modes[currentMode].Speed);
     jsonWrite(configSetup, "sc", modes[currentMode].Scale);
-    FastLED.setBrightness(modes[currentMode].Brightness);
+    SetBrightness(modes[currentMode].Brightness);
     loadingFlag = true;
     //settChanged = true;
     //eepromTimeout = millis();
@@ -545,7 +557,7 @@ void Bright_Up_Down(bool direction)   {
     uint8_t delta = IR_Data_Ready == 1 ? 1U : 4U;
     modes[currentMode].Brightness = constrain(direction ? modes[currentMode].Brightness + delta : modes[currentMode].Brightness - delta, 1, 255);
 	jsonWrite(configSetup, "br", modes[currentMode].Brightness);
-    FastLED.setBrightness(modes[currentMode].Brightness);
+    SetBrightness(modes[currentMode].Brightness);
     #ifdef TM1637_USE
     DisplayFlag = 3;
     Display_Timer(modes[currentMode].Brightness);
@@ -632,8 +644,9 @@ void Volum_Up_Down (bool direction)   {
     DisplayFlag = 3;
     Display_Timer(eff_volume);
     #endif
-    //timeout_save_file_changes = millis();
-    //bitSet (save_file_changes, 0);
+    #ifdef USE_MULTIPLE_LAMPS_CONTROL
+    repeat_multiple_lamp_control = true;
+    #endif  //USE_MULTIPLE_LAMPS_CONTROL
     #endif  //MP3_TX_PIN
 }
 
@@ -671,11 +684,13 @@ void Print_IP()   {
 
 void Folder_Next_Prev(bool direction)    {
     #ifdef MP3_TX_PIN
-    if (!pause_on && !mp3_stop && eff_sound_on) {
+    if (true) { //(!pause_on && !mp3_stop && eff_sound_on) {
     CurrentFolder = constrain(direction ? CurrentFolder + 1 : CurrentFolder - 1, 0, 99);
     jsonWrite(configSetup, "fold_sel", CurrentFolder);
-    send_command(0x17,FEEDBACK,0,CurrentFolder);   //  Предыдущая папка / Следующая папка
-    delay(mp3_delay);
+    if (!pause_on && !mp3_stop && eff_sound_on) {
+      send_command(0x17,FEEDBACK,0,CurrentFolder);           // Включить непрерывное воспроизведение указанной папки
+      delay(mp3_delay);
+    }
     }
     #ifdef GENERAL_DEBUG
      LOG.print (F("\nCurrent folder "));
@@ -685,6 +700,9 @@ void Folder_Next_Prev(bool direction)    {
     DisplayFlag = 0;
     Display_Timer();
     #endif
+     #ifdef USE_MULTIPLE_LAMPS_CONTROL
+    repeat_multiple_lamp_control = true;
+    #endif  //USE_MULTIPLE_LAMPS_CONTROL
     #endif  //MP3_TX_PIN
 }
 
@@ -757,7 +775,7 @@ void Digit_Handle (uint8_t digit)   {
 	    jsonWrite(configSetup, "br", modes[currentMode].Brightness);
         jsonWrite(configSetup, "sp", modes[currentMode].Speed);
         jsonWrite(configSetup, "sc", modes[currentMode].Scale);
-        FastLED.setBrightness(modes[currentMode].Brightness);
+        SetBrightness(modes[currentMode].Brightness);
         loadingFlag = true;
         //timeout_save_file_changes = millis();
         //bitSet (save_file_changes, 0);
