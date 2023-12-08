@@ -1,10 +1,10 @@
-// Текущая версия : FieryLedLamp v3.6_new_web 121 эффектов
+// Текущая версия : FieryLedLamp v3.7_new_web 122 эффектов
 // ВНИМАНИЕ!!! Большая часть настроек перенесена в файл data/config и может изменяться в процессе эксплуатации лампы.
 // Внимательно читайте файл ПРОЧТИ МЕНЯ!!!.txt и ПРОЧТИ МЕНЯ.doc (тут с картинками)
 
 #pragma once
 
-#define FLL_VERSION           (" Ver.3.6.121")
+#define FLL_VERSION           (" Ver.3.7.122")
 
 //#include <ESP8266WebServer.h>
 
@@ -253,33 +253,34 @@ uint8_t MATRIX_TYPE = 0;                                    // тип матри
 #define EFF_LIGHTER_TRACES      ( 93U)    // Светлячки со шлейфом
 #define EFF_FEATHER_CANDLE      ( 94U)    // Свеча
 #define EFF_AURORA              ( 95U)    // Северное сияние
-#define EFF_SINUSOID3           ( 96U)    // Синусоид
-#define EFF_COLORS              ( 97U)    // Смена цвета
-#define EFF_SNOW                ( 98U)    // Снегопад
-#define EFF_SPECTRUM            ( 99U)    // Спектрум
-#define EFF_SPIRO               (100U)    // Спирали
-#define EFF_FLOCK               (101U)    // Стая
-#define EFF_FLOCK_N_PR          (102U)    // Стая и хищник
-#define EFF_ARROWS              (103U)    // Стрелки
-#define EFF_STROBE              (104U)    // Строб.Хаос.Дифузия
-#define EFF_SHADOWS             (105U)    // Тени
-#define EFF_PACIFIC             (106U)    // Тихий океан
-#define EFF_TORNADO             (107U)    // Торнадо
-#define EFF_SIMPLE_RAIN         (108U)    // Tyчкa в банке
-#define EFF_FIREWORK            (109U)    // Фейерверк
-#define EFF_FIREWORK_2          (110U)    // Фейерверк 2
-#define EFF_FAIRY               (111U)    // Фея
-#define EFF_COLOR               (112U)    // Цвет
-#define EFF_EFF_COLORED_PYTHON  (113U)    // Цветной Питон
-#define EFF_EFF_SAND            (114U)    // Цветные драже
-#define EFF_COLOR_FRIZZLES      (115U)    // Цветные кудри
-#define EFF_EFF_LOTUS           (116U)    // Цветок лотоса
-#define EFF_TURBULENCE          (117U)    // Цифровая турбулентность
-#define EFF_SPHERES             (118U)    // Шapы
-#define EFF_NEXUS               (119U)    // Nexus
-#define EFF_CLOCK               (120U)    // Часы
+#define EFF_SERPENTINE          ( 96U)    // Серпантин
+#define EFF_SINUSOID3           ( 97U)    // Синусоид
+#define EFF_COLORS              ( 98U)    // Смена цвета
+#define EFF_SNOW                ( 99U)    // Снегопад
+#define EFF_SPECTRUM            (100U)    // Спектрум
+#define EFF_SPIRO               (101U)    // Спирали
+#define EFF_FLOCK               (102U)    // Стая
+#define EFF_FLOCK_N_PR          (103U)    // Стая и хищник
+#define EFF_ARROWS              (104U)    // Стрелки
+#define EFF_STROBE              (105U)    // Строб.Хаос.Дифузия
+#define EFF_SHADOWS             (106U)    // Тени
+#define EFF_PACIFIC             (107U)    // Тихий океан
+#define EFF_TORNADO             (108U)    // Торнадо
+#define EFF_SIMPLE_RAIN         (109U)    // Tyчкa в банке
+#define EFF_FIREWORK            (110U)    // Фейерверк
+#define EFF_FIREWORK_2          (111U)    // Фейерверк 2
+#define EFF_FAIRY               (112U)    // Фея
+#define EFF_COLOR               (113U)    // Цвет
+#define EFF_EFF_COLORED_PYTHON  (114U)    // Цветной Питон
+#define EFF_EFF_SAND            (115U)    // Цветные драже
+#define EFF_COLOR_FRIZZLES      (116U)    // Цветные кудри
+#define EFF_EFF_LOTUS           (117U)    // Цветок лотоса
+#define EFF_TURBULENCE          (118U)    // Цифровая турбулентность
+#define EFF_SPHERES             (119U)    // Шapы
+#define EFF_NEXUS               (120U)    // Nexus
+#define EFF_CLOCK               (121U)    // Часы
 
-#define MODE_AMOUNT         (121U)    // количество режимов
+#define MODE_AMOUNT         (122U)    // количество режимов
 
 // ============= МАССИВ НАСТРОЕК ЭФФЕКТОВ ПО УМОЛЧАНИЮ ===================
 // формат записи:
@@ -382,6 +383,7 @@ static const uint8_t defaultSettings[][3] PROGMEM = {
   {  15, 185,  93}, // Светлячки со шлейфом
   {  20, 220,   8}, // Свеча
   {  15, 160,  64}, // Северное сияние
+  {  15,  75,  50}, // Серпантин
   {  20, 127,  75}, // Синусоид
   {  25, 240,   1}, // Смена цвета
   {  10, 205,  90}, // Снегопад

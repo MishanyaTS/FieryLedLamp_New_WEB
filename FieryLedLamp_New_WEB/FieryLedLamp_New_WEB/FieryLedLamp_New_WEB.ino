@@ -231,6 +231,7 @@ bool night_advert_sound_on;          // Вкл.Выкл озвучивания �
 bool alarm_advert_sound_on;          // Вкл.Выкл озвучивания времени будильником
 uint8_t mp3_player_connect = 0;      // Плеер не подключен. true - подключен.
 uint8_t mp3_folder_last=255;         // Предыдущая папка для воспроизведения
+//uint8_t mp3_folder_change =0;      // Указывает, была ли изменена папка
 bool set_mp3_play_now=false;         // Указывает, надо ли играть сейчас мелодии
 uint32_t alarm_timer;                // Периодичность проверки и плавного изменения громкости будильника
 uint32_t mp3_timer = 0;
@@ -239,18 +240,18 @@ bool pause_on = true;                        // Озвучка эффектов 
 uint8_t eff_volume = 9;                      // громкость воспроизведения
 uint8_t eff_sound_on = 0;                    // звук включен - !0 (true), выключен - 0
 uint8_t CurrentFolder;                       // Папка, на которую переключились (будет проигрываться)
+uint8_t CurrentFolder_last = 0;              // Предыдущая текущая папка
 SoftwareSerial mp3(MP3_RX_PIN, MP3_TX_PIN);  // создаём объект mySoftwareSerial и указываем выводы, к которым подлючен плеер (RX, TX)
-#ifndef TM1637_USE
- uint8_t minute_tmp;
-#endif
+//#ifndef TM1637_USE
+// uint8_t minute_tmp;
+//#endif
 uint8_t mp3_receive_buf[10];
 uint8_t effects_folders[MODE_AMOUNT];    // Номера папок для озвучивания
 uint16_t ADVERT_TIMER_H, ADVERT_TIMER_M; // продолжительность озвучивания часов и минут
-uint8_t mp3_delay;                       // Задержка между командами плееру
-
+uint8_t mp3_delay;                       // Задержка между командами проигрывателя
+uint8_t send_sound = 1;                  // Передавать или нет сомнительным параметрам звука (папка,озвучивание_on/off,громкость)
+uint8_t send_eff_volume = 1;             // Передавать или нет озвучивания_on/off, громкость
 #endif  //MP3_TX_PIN
-
-uint16_t current_limit;              // настраиваемый  Лимит тока
 #ifdef TM1637_USE
 uint8_t DispBrightness = 1;          // +++ Яркость дисплея от 0 до 255(5 уровней яркости с шагом 51). 0 - дисплей погашен 
 bool dotFlag = false;                // +++ флаг: в часах рисуется двоеточие или нет
@@ -258,7 +259,6 @@ uint32_t tmr_clock = 0;              // +++ таймер мигания разд
 uint32_t tmr_blink = 0;              // +++ таймер плавного изменения яркости дисплея
 TM1637Display display(CLK, DIO);     // +++ подключаем дисплей
 bool aDirection = false;             // +++ Направление изменения яркости
-uint8_t last_minute;
 uint32_t DisplayTimer;               // Время отображения номера эффекта
 uint8_t LastEffect = 255;            // последний Проигрываемый эффект
 uint8_t DisplayFlag=0;               // Флаг, показывающий, что отображается номер эффекта и папки
@@ -298,6 +298,15 @@ IPAddress Gateway;//(192,168,0,1);     // Шлюз
 IPAddress Subnet;//(255,255,255,0);    // Маска подсети
 IPAddress DNS1;//(208,67,222,222);     // Серверы DNS. Можно также DNS1(1,1,1,1) или DNS1(8,8,4,4);
 IPAddress DNS2(8,8,8,8);               // Резервный DNS
+
+uint8_t C_flag = 0;
+uint16_t current_limit;              // Лимит настраиваемого тока
+uint8_t last_minute;                 // минуты
+uint8_t hours;                       // часы
+//uint8_t last_hours; 
+uint8_t m_date,d_date;               // дата
+uint8_t AutoBrightness;              // Автояркость on/off
+uint8_t last_day_night = 0;
 
 void setup()  //==================================================================  void setup()  =========================================================================
 {
@@ -393,6 +402,7 @@ void setup()  //================================================================
   SpeedRunningText = jsonReadtoInt(configSetup, "spt");  // Скорость бегущей строки
   ColorRunningText = jsonReadtoInt(configSetup, "sct");  // Цвет бегущей строки
   ColorTextFon = jsonReadtoInt(configSetup, "ctf");      // Выводить бегущую строку на цветном фоне 
+  AutoBrightness = jsonReadtoInt(configSetup, "auto_bri");   // Автоматическое понижение яркости on/off
   #ifdef USE_NTP
   (jsonRead(configSetup, "ntp")).toCharArray (NTP_ADDRESS, (jsonRead(configSetup, "ntp")).length()+1);
   #endif
@@ -413,6 +423,8 @@ void setup()  //================================================================
   alarm_advert_sound_on = jsonReadtoInt(configSetup,"on_alm_adv");
   night_advert_volume = jsonReadtoInt(configSetup,"night_vol");
   Equalizer = jsonReadtoInt(configSetup, "eq");
+  send_sound = jsonReadtoInt(configSetup, "s_s");
+  send_eff_volume = jsonReadtoInt(configSetup, "s_e_v");
   #endif //MP3_TX_PIN
   {
   String configHardware = readFile(F("hardware_config.json"), 1024);    
@@ -583,17 +595,18 @@ void setup()  //================================================================
   // WI-FI
   
   LOG.printf_P(PSTR("\nРабочий режим лампы: ESP_MODE = %d\n"), espMode);
-
-  //Запускаем WIFI  
+  //Запускаем WIFI
+  LOG.println(F("Старуем WIFI"));
+  
   WiFi.persistent(false);   // Побережём EEPROM
  
   if (espMode == 0U)                                        // режим WiFi точки доступа
   {
-	// Отключаем WIFI
-	WiFi.disconnect();
-	// Меняем режим на режим точки доступа
-	WiFi.mode(WIFI_AP);
-	// Задаем настройки сети
+  // Отключаем WIFI
+  WiFi.disconnect();
+  // Меняем режим на режим точки доступа
+  WiFi.mode(WIFI_AP);
+  // Задаем настройки сети
     if (sizeof(AP_STATIC_IP))
     {
       WiFi.softAPConfig(                      
@@ -601,9 +614,9 @@ void setup()  //================================================================
         IPAddress(AP_STATIC_IP[0], AP_STATIC_IP[1], AP_STATIC_IP[2], 1),                    // первый доступный IP адрес сети
         IPAddress(255, 255, 255, 0));                                                       // маска подсети
     }
-	// Включаем WIFI в режиме точки доступа с именем и паролем
-	// хронящихся в переменных _ssidAP _passwordAP в фвйле config.json
-	WiFi.softAP(AP_NAME, AP_PASS);
+  // Включаем WIFI в режиме точки доступа с именем и паролем
+  // хронящихся в переменных _ssidAP _passwordAP в фвйле config.json
+  WiFi.softAP(AP_NAME, AP_PASS);
     LOG.print(F("Старт WiFi в режиме точки доступа\n"));
     LOG.print(F("IP адрес: "));
     LOG.println(WiFi.softAPIP());
@@ -613,56 +626,38 @@ void setup()  //================================================================
     LOG.println(system_get_free_heap_size());
     LOG.println (F("*******************************************"));
     #endif    
-	connect = true;
+  connect = true;
     delay (100);    
   }
   else                                                      // режим WiFi клиента. Подключаемся к роутеру
   {
-    LOG.print(F("\nПодключение к сети "));
-	   
+    LOG.println(F("Старт WiFi в режиме клиента (подключение к роутеру)"));
+//  WIFI_start_station_mode (); 
+  
+   
    WiFi.persistent(false);
 
   // Попытка подключения к Роутеру
-  {
   WiFi.mode(WIFI_STA);
   String _ssid = jsonRead(configSetup, "ssid");
-  LOG.println(_ssid);
-  char* Pass_STA = new char[64];
-  char* SSID_STA = new char[32];
-  _ssid.toCharArray(SSID_STA, _ssid.length()+1);
-  #ifdef GENERAL_DEBUG
-  LOG.print("\nPass_STA = ");
-  #endif
-  for (uint8_t address = 0; address < 64; address ++){
-      Pass_STA[address] = EEPROM.read(EEPROM_PASSWORD_START_ADDRESS + address);
-      #ifdef GENERAL_DEBUG
-      LOG.print(Pass_STA[address]);
-      #endif
-      if (Pass_STA[address] == 0) break;
+  String _password = jsonRead(configSetup, "password");
+  if (_ssid == "" && _password == "") {
+   espMode = 0;
+   jsonWrite(configSetup, "ESP_mode", (int)espMode);
+   saveConfig(); 
+   ESP.restart();
   }
-  #ifdef GENERAL_DEBUG
-  LOG.println( );
-  #endif
-  if (_ssid == "") {
-     espMode = 0;
-     jsonWrite(configSetup, "ESP_mode", (int)espMode);
-     saveConfig(); 
-     ESP.restart();
-  }
-  else
-  {
+  else {
 
     if(use_static_ip)
     {  
         WiFi.config(Static_IP, Gateway, Subnet, DNS1, DNS2); // Конфигурация под статический IP Address
     }
   delay(10);  
-    WiFi.begin(SSID_STA, Pass_STA); //WiFi.begin(_ssid.c_str(), _password.c_str()); //
-    delete [] Pass_STA;
-    delete [] SSID_STA;
+    WiFi.begin(_ssid.c_str(), _password.c_str());
   }
-  }
-		   delay (10);	  
+    
+  delay (10);	  
     #ifdef USE_BLYNK
     Blynk.config(USE_BLYNK, "blynk.tk", 8080);
     #endif
@@ -883,7 +878,7 @@ do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=========
     #ifdef USE_BLYNK
     updateRemoteBlynkParams();
     #endif
-    FastLED.setBrightness(modes[currentMode].Brightness);
+    SetBrightness(modes[currentMode].Brightness);
   }
 
   #if USE_MQTT

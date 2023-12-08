@@ -194,7 +194,7 @@ void processParams(char *prefix, const char *paramValue)
       MqttManager::needToPublish = true;
     }
     #endif
-    FastLED.setBrightness(modes[currentMode].Brightness);    
+    SetBrightness(modes[currentMode].Brightness);        
     
     updateRemoteBlynkParams();
   }

@@ -2278,7 +2278,11 @@ void showWarning(
   }
 
   FastLED.clear();
-  FastLED.setBrightness(ONflag ? modes[currentMode].Brightness : 0);  // установка яркости, которая была выставлена до вызова предупреждения
+  if(ONflag)
+      SetBrightness(modes[currentMode].Brightness);
+  else
+      FastLED.setBrightness(0);
+  //FastLED.setBrightness(ONflag ? modes[currentMode].Brightness : 0);  // установка яркости, которая была выставлена до вызова предупреждения
   delay(1);
   FastLED.show();
 

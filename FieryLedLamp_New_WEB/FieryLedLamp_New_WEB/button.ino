@@ -51,7 +51,7 @@ void buttonTick()
             #ifdef TM1637_USE
             clockTicker_blink();
             #endif
-            FastLED.setBrightness(modes[currentMode].Brightness);
+            SetBrightness(modes[currentMode].Brightness);
             changePower();
        }
        return;
@@ -62,13 +62,16 @@ void buttonTick()
 	  jsonWrite(configSetup, "Power", ONflag);
     }
     if (!ONflag)  {
-        //eepromTimeout = millis() - EEPROM_WRITE_DELAY; // eepromTimeout = millis(); // 
         timeout_save_file_changes = millis() - SAVE_FILE_DELAY_TIMEOUT;
         if (!FavoritesManager::FavoritesRunning) EepromManager::EepromPut(modes);
         save_file_changes = 7;
         timeTick();
     }
-    else EepromManager::EepromGet(modes);
+    else {
+        EepromManager::EepromGet(modes);
+        timeout_save_file_changes = millis();
+        bitSet (save_file_changes, 0);
+    }
     changePower();
     loadingFlag = true;
 
@@ -82,7 +85,12 @@ void buttonTick()
     updateRemoteBlynkParams();
     #endif
     #ifdef USE_MULTIPLE_LAMPS_CONTROL
-    multiple_lamp_control ();
+    if (ONflag) {
+        repeat_multiple_lamp_control=true;
+    }
+    else {
+        multiple_lamp_control ();
+    }
     #endif  //USE_MULTIPLE_LAMPS_CONTROL
   }
 
@@ -100,7 +108,7 @@ void buttonTick()
         #ifdef TM1637_USE
         clockTicker_blink();
         #endif
-        FastLED.setBrightness(modes[currentMode].Brightness);
+        SetBrightness(modes[currentMode].Brightness);
         changePower();
        }
        else
@@ -128,7 +136,7 @@ void buttonTick()
 	jsonWrite(configSetup, "br", modes[currentMode].Brightness);
     jsonWrite(configSetup, "sp", modes[currentMode].Speed);
     jsonWrite(configSetup, "sc", modes[currentMode].Scale);
-    FastLED.setBrightness(modes[currentMode].Brightness);
+    SetBrightness(modes[currentMode].Brightness);
     loadingFlag = true;
 
       if (random_on && FavoritesManager::FavoritesRunning)
@@ -172,7 +180,7 @@ void buttonTick()
 	jsonWrite(configSetup, "br", modes[currentMode].Brightness);
     jsonWrite(configSetup, "sp", modes[currentMode].Speed);
     jsonWrite(configSetup, "sc", modes[currentMode].Scale);
-    FastLED.setBrightness(modes[currentMode].Brightness);
+    SetBrightness(modes[currentMode].Brightness);
     loadingFlag = true;
 
       if (random_on && FavoritesManager::FavoritesRunning)
@@ -285,6 +293,7 @@ void buttonTick()
   }
 
   #ifdef MP3_TX_PIN
+  
   // Восьмикратное нажатие
   if (clickCount == 8U)  {                // Вкл / Откл звука
     if (mp3_player_connect == 4) {
@@ -310,6 +319,9 @@ void buttonTick()
         #endif
     }
     jsonWrite(configSetup, "on_sound", constrain (eff_sound_on,0,1));
+    #ifdef USE_MULTIPLE_LAMPS_CONTROL
+    repeat_multiple_lamp_control = true;
+    #endif  //USE_MULTIPLE_LAMPS_CONTROL
   }
   #endif  //MP3_TX_PIN
 
@@ -342,7 +354,7 @@ if (touch.isStep())
             : modes[currentMode].Brightness - delta,
           1, 255);
 		jsonWrite(configSetup, "br", modes[currentMode].Brightness);
-        FastLED.setBrightness(modes[currentMode].Brightness);
+        SetBrightness(modes[currentMode].Brightness);
         #ifdef TM1637_USE
         DisplayFlag = 3;
         Display_Timer(modes[currentMode].Brightness);
@@ -354,7 +366,6 @@ if (touch.isStep())
         #ifdef USE_MULTIPLE_LAMPS_CONTROL
         repeat_multiple_lamp_control = true;
         #endif  //USE_MULTIPLE_LAMPS_CONTROL
-
         break;
       }
 
@@ -374,7 +385,9 @@ if (touch.isStep())
         DisplayFlag = 3;
         Display_Timer(modes[currentMode].Speed);
         #endif    
-
+        #ifdef USE_MULTIPLE_LAMPS_CONTROL
+        repeat_multiple_lamp_control = true;
+        #endif  //USE_MULTIPLE_LAMPS_CONTROL
         break;
       }
 
@@ -394,12 +407,14 @@ if (touch.isStep())
         DisplayFlag = 3;
         Display_Timer(modes[currentMode].Scale);
         #endif
-
+        #ifdef USE_MULTIPLE_LAMPS_CONTROL
+        repeat_multiple_lamp_control = true;
+        #endif  //USE_MULTIPLE_LAMPS_CONTROL
         break;
       }
 	  
 	    #ifdef BUTTON_CAN_SET_SLEEP_TIMER
-	  case 3U:
+	  case 3U:                                                  // Таймер сна 10 мин.
 	  {
 		Button_Holding = true;
 		// мигать об успехе операции лучше до вызова changePower(), иначе сперва мелькнут кадры текущего эффекта
@@ -408,16 +423,17 @@ if (touch.isStep())
 		changePower();
 		jsonWrite(configSetup, "Power", ONflag);
         jsonWrite(configSetup, "tmr", 1);
-		#ifdef USE_BLYNK
-		updateRemoteBlynkParams();
-		#endif
-		TimerManager::TimeToFire = millis() + BUTTON_SET_SLEEP_TIMER2 * 60UL * 1000UL;
-		TimerManager::TimerRunning = true;
-		break;
-	  }
-		#endif //BUTTON_CAN_SET_SLEEP_TIMER
-	  case 14U:
-	  {
+       	#ifdef USE_BLYNK
+        updateRemoteBlynkParams();
+        #endif
+        TimerManager::TimeToFire = millis() + BUTTON_SET_SLEEP_TIMER2 * 60UL * 1000UL;
+        TimerManager::TimerRunning = true;
+        break;
+      }
+        #endif //BUTTON_CAN_SET_SLEEP_TIMER
+
+      case 14U:                                             // Сброс основных настроек, хранящихся в файле config.json
+      {
           showWarning(CRGB::Red, 500, 250U);
           ESP.wdtFeed();
           setModeSettings();
@@ -433,7 +449,8 @@ if (touch.isStep())
           }
           break;
       }
-      case 19U:
+      
+      case 19U: //                                          Сброс всех настроек в "заводские"
 	  {
           showWarning(CRGB::Red, 500, 250U);
           ESP.wdtFeed();
@@ -546,7 +563,7 @@ if (touch.isStep())
 		ONflag = true;
 		changePower();
 		jsonWrite(configSetup, "Power", ONflag);
-        jsonWrite(configSetup, "tmr", 1);
+    jsonWrite(configSetup, "tmr", 1);
 		#ifdef USE_BLYNK
 		updateRemoteBlynkParams();
 		#endif
@@ -555,7 +572,7 @@ if (touch.isStep())
 		break;		
 	  }
 		#endif //BUTTON_CAN_SET_SLEEP_TIMER
-/*        
+        
       case 14U:
 	  {
           showWarning(CRGB::Red, 500, 250U);
@@ -626,7 +643,7 @@ if (touch.isStep())
           ESP.restart();
           break;
       }
-*/      
+      
 	}
    }
   }

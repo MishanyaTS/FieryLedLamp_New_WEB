@@ -77,6 +77,7 @@ void mp3_setup()   {
 */
 
 
+   
       #ifdef DF_PLAYER_GD3200x
       Serial.println("\n Предварительная установка папки озвучивания");
       //send_command(0x06,FEEDBACK,0,0);                     // Устанавливаем громкость равной 0
@@ -90,7 +91,6 @@ void mp3_setup()   {
       send_command(0x0E,FEEDBACK,0,0);                     // Пауза Stop
 
       #endif
-
 
 
       send_command(0x07,FEEDBACK,0,Equalizer);             // Устанавливаем эквалайзер в положение Equalizer
@@ -239,10 +239,12 @@ void play_sound()   {
         send_command(0x0E,FEEDBACK,0,0);  //Пауза
         mp3_stop = true;
         CurrentFolder = mp3_folder;
+        CurrentFolder_last = CurrentFolder;
+        //mp3_folder_change = 0;
     }
     else {
         delay(mp3_delay);
-        uint8_t folder;
+        //uint8_t folder;
         if ( mp3_folder >= 20 && mp3_folder <= 90 )
         {
             CurrentFolder = (uint8_t) random (mp3_folder, constrain (mp3_folder + 10, 20, 99));
@@ -251,12 +253,20 @@ void play_sound()   {
         {
             CurrentFolder = mp3_folder;
         }
-        send_command(0x17,FEEDBACK,0,CurrentFolder); // Включить непрерывное воспроизведение указанной папки
-        mp3_stop = false;
-        //CurrentFolder = folder;
+        if (((CurrentFolder_last != CurrentFolder) && set_mp3_play_now) || alarm_sound_flag) {
+          send_command(0x17,FEEDBACK,0,CurrentFolder); // Включить непрерывное воспроизведение указанной папки
+          delay(mp3_delay);
+          //Serial.println ("play_sound");
+          mp3_stop = false;
+          //mp3_folder_change = 0;
+          CurrentFolder_last = CurrentFolder;
+        }
+          //CurrentFolder_last = CurrentFolder;
     }
     jsonWrite(configSetup, "fold_sel", CurrentFolder);
     #ifdef GENERAL_DEBUG
+     LOG.print (F("\nCurrent folder last  "));
+     LOG.println (CurrentFolder_last);
      LOG.print (F("\nCurrent folder "));
      LOG.println (CurrentFolder);
     #endif
@@ -279,9 +289,10 @@ void mp3_loop()   {
         mp3_folder = AlarmFolder;  // Папка будильника
         alarm_timer = millis();
         send_command(0x06,FEEDBACK,0,0);  //Громкость
-        play_sound();
-        mp3_folder_last = mp3_folder;
         alarm_sound_flag = true;
+        mp3_folder_last = mp3_folder;
+        //mp3_folder_change = 1;
+        play_sound();
      }
     return;
   }
@@ -294,6 +305,7 @@ void mp3_loop()   {
         send_command(0x0E,FEEDBACK,0,0);  //Пауза
         mp3_stop = true;
         delay(mp3_delay);
+        //CurrentFolder = CurrentFolder_last;
       }
   }
   if (ONflag && eff_sound_on) {
@@ -310,20 +322,29 @@ void mp3_loop()   {
     delay(mp3_delay);
   }   
   if (!mp3_stop && set_mp3_play_now && pause_on) {
-    send_command(0x0D,FEEDBACK,0,0);  //Старт
+    if (CurrentFolder == CurrentFolder_last)
+        send_command(0x0D,FEEDBACK,0,0);  //Старт
     pause_on = false;
     delay(mp3_delay);
   }
   
   
-  if ((set_mp3_play_now) && (mp3_folder_last != mp3_folder)) {  //Проверка необходимости изменения папки озвучкой
-        #ifdef MP3_DEBUG
+  if ((CurrentFolder != CurrentFolder_last) && set_mp3_play_now) {
+      send_command(0x17,FEEDBACK,0,CurrentFolder); // Включить непрерывное воспроизведение указанной папки
+      mp3_stop = false;
+      //mp3_folder_change = 0;
+      CurrentFolder_last = CurrentFolder;
+  }
+
+  if (mp3_folder_last != mp3_folder) {  // Проверка необходимости изменения папки озвучивания  (set_mp3_play_now && (mp3_folder_last != mp3_folder))
+        #ifdef GENERAL_DEBUG//MP3_DEBUG
           LOG.print (F("mp3_folder_last = "));
           LOG.println (mp3_folder_last);
           LOG.print (F("mp3_folder = "));
           LOG.println (mp3_folder);
         #endif   
     mp3_folder_last = mp3_folder;
+    //mp3_folder_change = 1;
     play_sound();
   }
   

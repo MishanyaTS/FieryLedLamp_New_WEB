@@ -11,7 +11,6 @@
                                                                           // интервал последующих синхронизаций времени определяён в NTP_INTERVAL (30-60 минут)
                                                                           // при ошибках повторной синхронизации времени функции будильника отключаться не будут
 #define RESOLVE_TIMEOUT       (1500UL)                                    // таймаут ожидания подключения к интернету в миллисекундах (1,5 секунды)
-//uint64_t lastResolveTryMoment = 0xFFFFFFFFUL;
 IPAddress ntpServerIp = {0, 0, 0, 0};
 
 #endif
@@ -29,9 +28,6 @@ static CHSV dawnColor = CHSV(0, 0, 0);*/
 static CRGB dawnColor[6];
 
 static uint8_t dawnCounter = 0;                                           // счётчик первых 10 шагов будильника
-#ifdef TM1637_USE
-uint8_t hours;
-#endif
 
 void timeTick()
 {
@@ -74,7 +70,6 @@ void timeTick()
             break;
         }
     }
-  //if (espMode == 1U) // рассвет то должнен работать, если время лампа уже получила
   {
     if (timeTimer.isReady())
     {
@@ -86,15 +81,6 @@ if (espMode == 1U){
         {
           resolveNtpServerAddress(ntpServerAddressResolved);              // пытаемся получить IP адрес сервера времени (тест интернет подключения) до тех пор, пока время не будет успешно синхронизировано
           lastResolveTryMoment = millis();
-          /* эта штука уже не отражает действительность
-          if (!ntpServerAddressResolved)
-          {
-            //#ifdef GENERAL_DEBUG
-            #if defined(GENERAL_DEBUG) && !defined(USE_MANUAL_TIME_SETTING)
-            LOG.println(F("Функции будильника отключены до восстановления подключения к интернету"));
-            #endif
-          }
-          */
         }
         if (!ntpServerAddressResolved)
         {
@@ -105,8 +91,7 @@ if (espMode == 1U){
 #ifdef PHONE_N_MANUAL_TIME_PRIORITY
 if (stillUseNTP)
 #endif      
-//    if (!timeSynched || millis() > ntpTimeLastSync + NTP_INTERVAL) // uint32_t ntpTimeLastSync
-//    {// если прошло более NTP_INTERVAL, значит, можно попытаться получить время с сервера точного времени один разок
+// если прошло более NTP_INTERVAL, значит, можно попытаться получить время с сервера точного времени один разокк
       if (timeClient.update()){
          #ifdef WARNING_IF_NO_TIME
            noTimeClear();
@@ -120,7 +105,6 @@ if (stillUseNTP)
          #endif
          getBrightnessForPrintTime();
       }
-//    }//if (!timeSynched || millis() > ntpTimeLastSync + NTP_INTERVAL)
 }
       #endif //USE_NTP
       
@@ -131,8 +115,6 @@ if (stillUseNTP)
 #endif
         return;
       }
-
-      //time_t currentLocalTime = localTimeZone.toLocal(timeClient.getEpochTime());
       time_t currentLocalTime = getCurrentLocalTime();
       
       uint8_t thisDay = dayOfWeek(currentLocalTime);
@@ -140,15 +122,34 @@ if (stillUseNTP)
       thisDay -= 2;
       thisTime = hour(currentLocalTime) * 60 + minute(currentLocalTime);
       uint32_t thisFullTime = hour(currentLocalTime) * 3600 + minute(currentLocalTime) * 60 + second(currentLocalTime);
-
-      printTime(thisTime, false, ONflag);                                 // проверка текущего времени и его вывод (если заказан и если текущее время соответстует заказанному расписанию вывода)
-
-#ifdef TM1637_USE
-      if (!DisplayFlag && last_minute != minute(currentLocalTime)) {
+      printTime(thisTime, false, ONflag);   // проверка текущего времени и его вывод (если заказан и если текущее время соответстует заказанному расписанию вывода)
+      if (last_minute != minute(currentLocalTime)
+          #ifdef TM1637_USE
+            && !DisplayFlag
+          #endif
+          ) {
         hours = hour(currentLocalTime);                   // получаем значение часов
-        last_minute = minute(currentLocalTime);                  // получаем значение минут
-        clockTicker_blink();
-        if (last_minute == 1) getBrightnessForPrintTime();
+        last_minute = minute(currentLocalTime);           // получаем значение минут
+        d_date = day(currentLocalTime);                   // Получаем день месяца
+        m_date = month(currentLocalTime);                 // получаем месяц
+        getBrightnessForPrintTime(); //if (last_minute == 1) getBrightnessForPrintTime();
+        if (ONflag && !dawnFlag && last_day_night != day_night) {
+            SetBrightness(modes[currentMode].Brightness);  // Переключаем автояркость эффектов
+            last_day_night= day_night;
+            //FastLED.show();
+        }
+        if (C_flag && d_date == 1 && m_date == 1) {
+        for (uint8_t i = 0; i < 80; i++) TextTicker [i] = pgm_read_byte (&Default_valueMask[i]);
+        buttonEnabled = 0;
+        RuninTextOverEffects = 0x40;
+        ColorRunningText = 48;
+        ColorTextFon = 1;
+        ONflag = 1;
+        changePower();            
+        }
+        #ifdef TM1637_USE
+          clockTicker_blink();
+        #endif
         
     #ifdef MP3_TX_PIN
     if (alarm_advert_sound_on && mp3_player_connect == 4 && dawnFlag && dawnPosition >= 245) {
@@ -163,34 +164,8 @@ if (stillUseNTP)
         }
     }
     #endif  //MP3_TX_PIN
-/*    
-        #ifdef MP3_TX_PIN
-              if (dawnFlag && dawnPosition == 255) {
-                  printTime(thisTime, true, ONflag);
-            }
-        #endif  //MP3_TX_PIN
-*/        
       }
-#else  //TM1637_USE
-    #ifdef MP3_TX_PIN
-      if (minute_tmp != minute(currentLocalTime)) {
-          minute_tmp = minute(currentLocalTime);
-          if (minute_tmp == 1)
-              getBrightnessForPrintTime();
-          if (alarm_advert_sound_on && mp3_player_connect == 4 && dawnFlag && dawnPosition >= 245) {
-             //Serial.println ("Alarm");
-             first_entry = 1;
-             advert_hour = true;
-             delay(mp3_delay);
-             play_time_ADVERT();
-             while (advert_flag) {
-                 play_time_ADVERT();
-                 ESP.wdtFeed();
-                }
-            }
-        }  
-    #endif  //MP3_TX_PIN        
-#endif  //TM1637_USE
+      
       // проверка рассвета
       if (alarms[thisDay].State &&                                                                                          // день будильника
           thisTime >= (uint16_t)constrain(alarms[thisDay].Time - pgm_read_byte(&dawnOffsets[dawnMode]), 0, (24 * 60)) &&    // позже начала
@@ -201,15 +176,6 @@ if (stillUseNTP)
           // величина рассвета 0-255
           dawnPosition = (uint16_t) (255 * ((float)(thisFullTime - (alarms[thisDay].Time - pgm_read_byte(&dawnOffsets[dawnMode])) * 60) / (pgm_read_byte(&dawnOffsets[dawnMode]) * 60)));
           dawnPosition = constrain(dawnPosition, 0, 255);
-          /* оптимизируем структуру данных и их обработчик
-          dawnColorMinus5 = dawnCounter > 4 ? dawnColorMinus4 : dawnColorMinus5;
-          dawnColorMinus4 = dawnCounter > 3 ? dawnColorMinus3 : dawnColorMinus4;
-          dawnColorMinus3 = dawnCounter > 2 ? dawnColorMinus2 : dawnColorMinus3;
-          dawnColorMinus2 = dawnCounter > 1 ? dawnColorMinus1 : dawnColorMinus2;
-          dawnColorMinus1 = dawnCounter > 0 ? dawnColor : dawnColorMinus1;
-          dawnColor = CHSV(map(dawnPosition, 0, 255, 10, 35),
-                           map(dawnPosition, 0, 255, 255, 170),
-                           map(dawnPosition, 0, 255, 2, DAWN_BRIGHT));*/
           for (uint8_t j = 5U; j > 0U; j--)
             if (dawnCounter >= j)
               dawnColor[j] = dawnColor[j - 1U];
@@ -217,22 +183,12 @@ if (stillUseNTP)
                            map(dawnPosition, 0, 255, 255, 170),
                            map(dawnPosition, 0, 255, 2, DAWN_BRIGHT));
 
-          /* исправляем переполнение счётчика
-          dawnCounter++;*/
           if (dawnCounter < 5U) dawnCounter++;
           
           // fill_solid(leds, NUM_LEDS, dawnColor);
           
           for (uint16_t i = 0U; i < NUM_LEDS; i++)
-          /*{ оптимизируем цикл
-            if (i % 6 == 0) leds[i] = dawnColor;                          // 1я 1/10 диодов: цвет текущего шага
-            if (i % 6 == 1) leds[i] = dawnColorMinus1;                    // 2я 1/10 диодов: -1 шаг
-            if (i % 6 == 2) leds[i] = dawnColorMinus2;                    // 3я 1/10 диодов: -2 шага
-            if (i % 6 == 3) leds[i] = dawnColorMinus3;                    // 3я 1/10 диодов: -3 шага
-            if (i % 6 == 4) leds[i] = dawnColorMinus4;                    // 3я 1/10 диодов: -4 шага
-            if (i % 6 == 5) leds[i] = dawnColorMinus5;                    // 3я 1/10 диодов: -5 шагов
-          }*/
-            leds[i] = dawnColor[i % 6U];
+          leds[i] = dawnColor[i % 6U];
           FastLED.setBrightness(255);
           delay(1);
           FastLED.show();
@@ -274,12 +230,6 @@ if (stillUseNTP)
         //blink_clock = false;
 #endif
         manualOff = false;
-        /* оптимизируем структуру данных и их обработчик
-        dawnColorMinus1 = CHSV(0, 0, 0);
-        dawnColorMinus2 = CHSV(0, 0, 0);
-        dawnColorMinus3 = CHSV(0, 0, 0);
-        dawnColorMinus4 = CHSV(0, 0, 0);
-        dawnColorMinus5 = CHSV(0, 0, 0);*/
         for (uint8_t j = 0U; j < 6U; j++)
           dawnColor[j] = 0;
           
@@ -410,14 +360,12 @@ void clockTicker_blink()
   //tm1637_brightness ();
   if (dawnFlag)  //если рассвет - мигаем  часами
   {
+    display.displayClock(hours, last_minute);                         // выводим время функцией часов
     if (millis() - tmr_blink > 100) {
       tmr_blink = millis();
-      //tm1637_brightness ();
       display.setBrightness((DispBrightness/51U)>4 ? 7 : DispBrightness/51U , DispBrightness);
-      display.displayClock(hours, last_minute);                         // выводим время функцией часов
       if (DispBrightness >= 204) {
         aDirection = false;
-        //DispBrightness = 7;
       }
       if (DispBrightness < 51U ) {
         if (!DispBrightness)  DispBrightness=1;
@@ -469,7 +417,7 @@ void GetGeolocationIP()
 {
   WiFiClient client;
   if (!client.connect("ipwho.is", 80)) {
-    Serial.println("Failed to connect with 'ipwho.is' !");
+    LOG.println(F("Failed to connect with 'ipwho.is' !"));
   }
   else {
     uint32_t timeout = millis();
@@ -479,21 +427,16 @@ void GetGeolocationIP()
 
     while (client.available() == 0) {
       if ((millis() - timeout) > 5000) {
-        Serial.println(">>> Client Timeout !");
+        LOG.println(F(">>> Client Timeout !"));;
         client.stop();
         return;
       }
     }
-    Serial.println("Response:");
-    //uint16_t size;
+    LOG.println(F("Response:"));
     char c;
     uint8_t count = 0;
     String StrResponse;
-    //while ((client.available()) > 0) {
-       // while (((client.available()) > 0) && ((c = (char)client.read()) != '{'));
-       // StrResponse += c; //delay(1);
-       // count++;
-        while (((client.available()) > 0)){
+      while (((client.available()) > 0)){
             c = (char)client.read();
             //StrResponse += c;
             if(c == '{') count ++;
@@ -504,16 +447,9 @@ void GetGeolocationIP()
                 }
             if (count > 0) StrResponse += c;
         }
-        //StrResponse += c;
-      //uint8_t* msg = (uint8_t*)malloc(size);
-      //size = client.read();
-      //Serial.write(msg, size);
-      //free(msg);
-    //}
-    Serial.println(StrResponse);
-    LOG.println(jsonRead(StrResponse,"country_code"));
-    //if(jsonRead(StrResponse,"country_code") == "\x55\x41") Serial.println("++RU++");
-    
+LOG.println(StrResponse);
+    //LOG.println(jsonRead(StrResponse,"country_code"));
+    if(jsonRead(StrResponse,"country_code") == "\x52\x55") C_flag = 1; //Serial.println("++RU++");
     
     client.stop();
   }
