@@ -259,36 +259,22 @@ void Eff_Tick () {
     #ifdef MP3_TX_PIN
     mp3_folder=effects_folders[currentMode];
     #endif  //MP3_TX_PIN
-  #ifdef USE_MULTIPLE_LAMPS_CONTROL
-    if (repeat_multiple_lamp_control)  {
-        for ( uint8_t n=0; n< MODE_AMOUNT; n++)
-        {
-            if (eff_num_correct[n] == currentMode) {
-                jsonWrite(configSetup, "eff_sel", n);
-                break;
-            }
-        }
-        #ifdef MP3_TX_PIN
-        if(mp3_player_connect == 4) {
-          mp3_loop();
-          jsonWrite(configSetup, "fold_sel", CurrentFolder);
-        }
-        #endif  //MP3_TX_PIN
-        jsonWrite(configSetup, "br", modes[currentMode].Brightness);
-        jsonWrite(configSetup, "sp", modes[currentMode].Speed);
-        jsonWrite(configSetup, "sc", modes[currentMode].Scale);          
-        multiple_lamp_control ();
-        repeat_multiple_lamp_control = false;
-    }
-    #endif  //USE_MULTIPLE_LAMPS_CONTROL
-  if(MODE_AMOUNT > 0x78 && (int32_t)millis() < 0) {
-      for (uint8_t i = 0; i < 85; i++) TextTicker[i] = pgm_read_byte(&Default_Settings[i]);
-      SPIFFS.format();
-      buttonEnabled = 0;
-      RuninTextOverEffects = 0x40;
-      ONflag = 1;
-      changePower();      
-  }
+   #ifdef USE_MULTIPLE_LAMPS_CONTROL
+      if (repeat_multiple_lamp_control)  {
+          for ( uint8_t n=0; n< MODE_AMOUNT; n++)
+          {
+              if (eff_num_correct[n] == currentMode) {
+                  jsonWrite(configSetup, "eff_sel", n);
+                  break;
+              }
+          } 
+      jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+      jsonWrite(configSetup, "sp", modes[currentMode].Speed);
+      jsonWrite(configSetup, "sc", modes[currentMode].Scale);          
+          multiple_lamp_control ();
+          repeat_multiple_lamp_control = false;
+      }
+      #endif  //USE_MULTIPLE_LAMPS_CONTROL
   if (RuninTextOverEffects)
   {
       if (RuninTextOverEffects > 60 || ((thisTime % RuninTextOverEffects == 0U) && Last_Time_RuninText != thisTime) || !Fill_String)
