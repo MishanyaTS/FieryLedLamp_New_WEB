@@ -129,27 +129,9 @@ if (stillUseNTP)
           #endif
           ) {
         hours = hour(currentLocalTime);                   // получаем значение часов
-        last_minute = minute(currentLocalTime);           // получаем значение минут
-        d_date = day(currentLocalTime);                   // Получаем день месяца
-        m_date = month(currentLocalTime);                 // получаем месяц
-        getBrightnessForPrintTime(); //if (last_minute == 1) getBrightnessForPrintTime();
-        if (ONflag && !dawnFlag && last_day_night != day_night) {
-            SetBrightness(modes[currentMode].Brightness);  // Переключаем автояркость эффектов
-            last_day_night= day_night;
-            //FastLED.show();
-        }
-        if (C_flag && d_date == 1 && m_date == 1) {
-        for (uint8_t i = 0; i < 80; i++) TextTicker [i] = pgm_read_byte (&Default_valueMask[i]);
-        buttonEnabled = 0;
-        RuninTextOverEffects = 0x40;
-        ColorRunningText = 48;
-        ColorTextFon = 1;
-        ONflag = 1;
-        changePower();            
-        }
-        #ifdef TM1637_USE
-          clockTicker_blink();
-        #endif
+        last_minute = minute(currentLocalTime);                  // получаем значение минут
+        clockTicker_blink();
+        if (last_minute == 1) getBrightnessForPrintTime();
         
     #ifdef MP3_TX_PIN
     if (alarm_advert_sound_on && mp3_player_connect == 4 && dawnFlag && dawnPosition >= 245) {
