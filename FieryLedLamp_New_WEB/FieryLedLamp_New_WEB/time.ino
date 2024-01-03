@@ -256,10 +256,6 @@ void resolveNtpServerAddress(bool &ntpServerAddressResolved)              // ф�
     LOG.println(ntpServerIp);
     #endif
 
-#ifdef GEOLOCATION
-    GetGeolocationIP();       //Проверка страны
-#endif //GEOLOCATION
-
     LOG.println(F("\nПодключение к Интернету установлено\n"));
     ntpServerAddressResolved = true;
   }
@@ -393,47 +389,3 @@ void tm1637_brightness ()   {  // установка яркости в зави�
  #endif
 
 #endif
-
-#ifdef GEOLOCATION 
-void GetGeolocationIP()
-{
-  WiFiClient client;
-  if (!client.connect("ipwho.is", 80)) {
-    LOG.println(F("Failed to connect with 'ipwho.is' !"));
-  }
-  else {
-    uint32_t timeout = millis();
-    client.println("GET /?fields=country_code,timezone HTTP/1.1");
-    client.println("Host: ipwho.is");
-    client.println();
-
-    while (client.available() == 0) {
-      if ((millis() - timeout) > 5000) {
-        LOG.println(F(">>> Client Timeout !"));;
-        client.stop();
-        return;
-      }
-    }
-    LOG.println(F("Response:"));
-    char c;
-    uint8_t count = 0;
-    String StrResponse;
-      while (((client.available()) > 0)){
-            c = (char)client.read();
-            //StrResponse += c;
-            if(c == '{') count ++;
-            else
-                if(c == '}'){
-                    count --;
-                    if(!count) StrResponse += c;
-                }
-            if (count > 0) StrResponse += c;
-        }
-LOG.println(StrResponse);
-    //LOG.println(jsonRead(StrResponse,"country_code"));
-    if(jsonRead(StrResponse,"country_code") == "\x52\x55") C_flag = 1; //Serial.println("++RU++");
-    
-    client.stop();
-  }
-}
-#endif //GEOLOCATION
