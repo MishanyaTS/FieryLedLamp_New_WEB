@@ -130,7 +130,9 @@ if (stillUseNTP)
           ) {
         hours = hour(currentLocalTime);                   // получаем значение часов
         last_minute = minute(currentLocalTime);                  // получаем значение минут
+        #ifdef TM1637_USE
         clockTicker_blink();
+        #endif
         if (last_minute == 1) getBrightnessForPrintTime();
         
     #ifdef MP3_TX_PIN
