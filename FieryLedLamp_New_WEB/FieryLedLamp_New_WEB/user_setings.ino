@@ -79,6 +79,8 @@ void User_setings ()  {
  HTTP.on("/s_IP", handle_use_static_ip);  // Использовать для подключения к роутеру статичный IP адрес
  HTTP.on("/set_ip", handle_set_static_ip);  // Установка статичного IP адреса, шлюза, маски подсети и DNS сервера
  HTTP.on("/auto_bri", handle_auto_bri);  // Автоматическое понижение яркости в ночное время
+ HTTP.on("/mqtt_set", handle_mqtt_set);  // Параметры настроек MQTT
+ HTTP.on("/mqtt_on", handle_mqtt_on);  // Использовать MQTT клиент
  HTTP.on("/ssidap", HTTP_GET, []() {   // Получаем SSID AP со страницы
      jsonWrite(configSetup, "ssidAP", HTTP.arg("ssidAP"));
      jsonWrite(configSetup, "passwordAP", HTTP.arg("passwordAP"));
@@ -1448,6 +1450,54 @@ void handle_auto_bri ()   {
     }
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
+
+#if (USE_MQTT)
+
+void handle_mqtt_set ()   {
+    String configMQTT = readFile(F("mqtt_config.json"), 512);
+    String str = HTTP.arg("mq_ip");
+    if(!MqttServer.fromString(str)){
+        str.toCharArray(MqttHost, str.length()+1);
+        mqttIPaddr = false;
+    }
+    else
+        mqttIPaddr = true;
+    jsonWrite(configMQTT, "mq_ip", str);
+    MqttPort = HTTP.arg("mq_port").toInt();
+    jsonWrite(configMQTT, "mq_port", MqttPort);
+    str = HTTP.arg("mq_user");
+    str.toCharArray(MqttUser, str.length()+1);
+    jsonWrite(configMQTT, "mq_user", str);
+    str = HTTP.arg("mq_pass");
+    str.toCharArray(MqttPassword, str.length()+1);
+    jsonWrite(configMQTT, "mq_pass", str);
+    writeFile(F("mqtt_config.json"), configMQTT );
+    HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
+    #ifdef GENERAL_DEBUG
+     LOG.print("MQTT server ");
+     if(mqttIPaddr)
+         LOG.print(MqttServer);
+     else
+         LOG.print(MqttHost);
+     LOG.print(": ");
+     LOG.println(MqttPort);
+     LOG.print("MQTT User - ");
+     LOG.println(MqttUser);
+     LOG.print("MQTT Password - ");
+     LOG.println(MqttPassword);
+     #endif //GENERAL_DEBUG
+}
+
+void handle_mqtt_on ()   {
+    String configMQTT = readFile(F("mqtt_config.json"), 512);
+    MqttOn = HTTP.arg("mq_on").toInt();
+    jsonWrite(configMQTT, "mq_on", MqttOn);
+    writeFile(F("mqtt_config.json"), configMQTT );
+    HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
+
+}
+
+#endif //USE_MQTT
 
 bool FileCopy (const String& SourceFile , const String& TargetFile)   {
     File S_File = SPIFFS.open( SourceFile, "r");
