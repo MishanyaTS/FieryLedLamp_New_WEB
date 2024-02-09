@@ -108,9 +108,9 @@ OtaPhase OtaManager::OtaFlag = OtaPhase::None;
 #if USE_MQTT
 AsyncMqttClient* mqttClient = NULL;
 AsyncMqttClient* MqttManager::mqttClient = NULL;
-char* MqttManager::mqttServer = NULL;
-char* MqttManager::mqttUser = NULL;
-char* MqttManager::mqttPassword = NULL;
+//char* MqttManager::mqttServer = NULL;
+//char* MqttManager::mqttUser = NULL;
+//char* MqttManager::mqttPassword = NULL;
 char* MqttManager::clientId = NULL;
 char* MqttManager::lampInputBuffer = NULL;
 char* MqttManager::topicInput = NULL;
@@ -291,7 +291,7 @@ uint8_t last_day_night = 0;
 
 void setup()  //==================================================================  void setup()  =========================================================================
 {
-  
+	
   Serial.begin(115200);
   delay(300);
   ESP.wdtEnable(WDTO_8S);
@@ -616,7 +616,7 @@ void setup()  //================================================================
     WiFi.begin(_ssid.c_str(), _password.c_str());
   }
     
-  delay (10);   
+  delay (10);	  
     #ifdef USE_BLYNK
     Blynk.config(USE_BLYNK, "blynk.tk", 8080);
     #endif
@@ -632,6 +632,35 @@ void setup()  //================================================================
 
   // MQTT
   #if (USE_MQTT)
+String configMQTT = readFile(F("mqtt_config.json"), 512);
+  String str;
+  if(!MqttServer.fromString(jsonRead(configMQTT, "mq_ip"))){
+        jsonRead(configMQTT, "mq_ip").toCharArray(MqttHost, jsonRead(configMQTT, "mq_ip").length()+1);
+        mqttIPaddr = false;
+  }
+  else
+      mqttIPaddr = true;
+  str = jsonRead(configMQTT, "mq_user");
+  str.toCharArray(MqttUser, str.length()+1);
+  str = jsonRead(configMQTT, "mq_pass");
+  str.toCharArray(MqttPassword, str.length()+1);
+  MqttPort = jsonReadtoInt(configMQTT, "mq_port");
+  MqttOn = jsonReadtoInt(configMQTT, "mq_on");
+  #ifdef GENERAL_DEBUG
+   LOG. println("Start MQTT");
+   LOG.print("MQTT server ");
+   if(mqttIPaddr)
+       LOG.print(MqttServer);
+   else
+       LOG.print(MqttHost);
+   LOG.print(": ");
+   LOG.println(MqttPort);
+   LOG.print("MQTT User - ");
+   LOG.println(MqttUser);
+   LOG.print("MQTT Password - ");
+   LOG.println(MqttPassword);
+  #endif //GENERAL_DEBUG
+  
   if (espMode == 1U)
   {
     mqttClient = new AsyncMqttClient();
@@ -675,33 +704,33 @@ void loop()  //=================================================================
   
  if (espMode) {
   if (WiFi.status() != WL_CONNECTED) {
-  if ((millis()-my_timer) >= 1000UL) {  
-    my_timer=millis();
-    if (ESP_CONN_TIMEOUT--) {
-    LOG.print(F("."));
-    ESP.wdtFeed();
-    }
-    else {
-    // Если не удалось подключиться запускаем в режиме AP
-    espMode = 0;
-    jsonWrite(configSetup, "ESP_mode", (int)espMode);
-    saveConfig(); 
-    ESP.restart();
-    }
+	if ((millis()-my_timer) >= 1000UL) {	
+	  my_timer=millis();
+	  if (ESP_CONN_TIMEOUT--) {
+		LOG.print(F("."));
+		ESP.wdtFeed();
+	  }
+	  else {
+		// Если не удалось подключиться запускаем в режиме AP
+		espMode = 0;
+		jsonWrite(configSetup, "ESP_mode", (int)espMode);
+		saveConfig(); 
+		ESP.restart();
+	  }
+	}
   }
-  }
-  else {
-    // Иначе удалось подключиться отправляем сообщение
-    // о подключении и выводим адрес IP
-    LOG.print(F("\nПодключение к роутеру установлено\n"));
-    LOG.print(F("IP адрес: "));
-    LOG.println(WiFi.localIP());
-    long rssi = WiFi.RSSI();
-    LOG.print(F("Уровень сигнала сети RSSI = "));
-    LOG.print(rssi);
-    LOG.println(F(" dbm"));
-    connect = true;
-    lastResolveTryMoment = 0;
+	else {
+		// Иначе удалось подключиться отправляем сообщение
+		// о подключении и выводим адрес IP
+		LOG.print(F("\nПодключение к роутеру установлено\n"));
+		LOG.print(F("IP адрес: "));
+		LOG.println(WiFi.localIP());
+		long rssi = WiFi.RSSI();
+		LOG.print(F("Уровень сигнала сети RSSI = "));
+		LOG.print(rssi);
+		LOG.println(F(" dbm"));
+		connect = true;
+		lastResolveTryMoment = 0;
       #ifdef GENERAL_DEBUG
         LOG.println (F("***********************************************"));
         LOG.print (F("Heap Size after connection Station mode = "));
@@ -724,22 +753,22 @@ void loop()  //=================================================================
       #endif
         loadingFlag = true;
       #endif  // DISPLAY_IP_AT_START
-    delay (0);
-  }
+		delay (0);
+	}
  }
  
  if (connect || !espMode)  { my_timer = millis(); }
   
-do {  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++========= Главный цикл ==========+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+do {	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++========= Главный цикл ==========+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
   // Если не устойчивое подключение к WiFi, или не создаётся точка доступа, или лампа не хочет подключаться к вашей сети или вы не можете подключиться к точке доступа, то может быть у вас не качественная плата.
   delay (0);   //Для некоторых плат ( особенно без металлического экрана над ESP и Flash памятью ) эта задержка должна быть увеличена. Подбирается индивидуально в пределах 1-12 мс до устойчивой работы WiFi. Чем меньше, тем лучше. Качественные платы работают с задержкой 0.
   yield();
   
-  //if ((connect || !espMode)&&((millis() - my_timer) >= 10UL)) 
-  {
-  HTTP.handleClient(); // Обработка запросов web страницы. 
-  //my_timer = millis();
-  }
+	//if ((connect || !espMode)&&((millis() - my_timer) >= 10UL)) 
+	{
+	HTTP.handleClient(); // Обработка запросов web страницы. 
+	//my_timer = millis();
+	}
  
   parseUDP();
   yield();
@@ -838,13 +867,13 @@ do {  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++========
   }
 
   #if USE_MQTT
-  if (espMode == 1U && mqttClient && WiFi.isConnected() && !mqttClient->connected())
+  if (espMode == 1U && mqttClient && WiFi.isConnected() && !mqttClient->connected() && MqttOn)
   {
     MqttManager::mqttConnect();                             // библиотека не умеет восстанавливать соединение в случае потери подключения к MQTT брокеру, нужно управлять этим явно
     MqttManager::needToPublish = true;
   }
 
-  if (MqttManager::needToPublish)
+  if (MqttManager::needToPublish && MqttOn)
   {
     if (strlen(inputBuffer) > 0)                            // проверка входящего MQTT сообщения; если оно не пустое - выполнение команды из него и формирование MQTT ответа
     {
