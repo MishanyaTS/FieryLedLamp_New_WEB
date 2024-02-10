@@ -464,7 +464,7 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/cycle_config.json"), F("/cycle_config.json"))) {
+          if(FileCopy (F("/default/config_cycle.json"), F("/config_cycle.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }
@@ -472,7 +472,7 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/sound_config.json"), F("/sound_config.json"))) {
+          if(FileCopy (F("/default/config_sound.json"), F("/config_sound.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }
@@ -480,7 +480,7 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/alarm_config.json"), F("/alarm_config.json"))) {
+          if(FileCopy (F("/default/config_alarm.json"), F("/config_alarm.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }
@@ -488,7 +488,7 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/hardware_config.json"), F("/hardware_config.json"))) {
+          if(FileCopy (F("/default/config_hardware.json"), F("/config_hardware.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }
@@ -496,7 +496,23 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/multilamp_config.json"), F("/multilamp_config.json"))) {
+          if(FileCopy (F("/default/config_multilamp.json"), F("/config_multilamp.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/config_ip.json"), F("/config_ip.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/config_mqtt.json"), F("/config_mqtt.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }
@@ -600,7 +616,7 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/cycle_config.json"), F("/cycle_config.json"))) {
+          if(FileCopy (F("/default/config_cycle.json"), F("/config_cycle.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }
@@ -608,7 +624,7 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/sound_config.json"), F("/sound_config.json"))) {
+          if(FileCopy (F("/default/config_sound.json"), F("/config_sound.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }
@@ -616,7 +632,7 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/alarm_config.json"), F("/alarm_config.json"))) {
+          if(FileCopy (F("/default/config_alarm.json"), F("/config_alarm.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }
@@ -624,7 +640,7 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/hardware_config.json"), F("/hardware_config.json"))) {
+          if(FileCopy (F("/default/config_hardware.json"), F("/config_hardware.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }
@@ -632,7 +648,23 @@ if (touch.isStep())
               ESP.wdtFeed();
               showWarning(CRGB::Red, 500, 250U);
           }
-          if(FileCopy (F("/default/multilamp_config.json"), F("/multilamp_config.json"))) {
+          if(FileCopy (F("/default/config_multilamp.json"), F("/config_multilamp.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/config_ip.json"), F("/config_ip.json"))) {
+              ESP.wdtFeed();
+              showWarning(CRGB::Green, 500, 250U);
+          }
+          else {
+              ESP.wdtFeed();
+              showWarning(CRGB::Red, 500, 250U);
+          }
+          if(FileCopy (F("/default/config_mqtt.json"), F("/config_mqtt.json"))) {
               ESP.wdtFeed();
               showWarning(CRGB::Green, 500, 250U);
           }

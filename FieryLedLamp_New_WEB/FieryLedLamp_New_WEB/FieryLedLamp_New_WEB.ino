@@ -407,7 +407,7 @@ void setup()  //================================================================
   send_eff_volume = jsonReadtoInt(configSetup, "s_e_v");
   #endif //MP3_TX_PIN
   {
-  String configHardware = readFile(F("hardware_config.json"), 1024);    
+  String configHardware = readFile(F("config_hardware.json"), 1024);    
   current_limit = jsonReadtoInt(configHardware, "cur_lim");
   MATRIX_TYPE = jsonReadtoInt(configHardware, "m_t");
   ORIENTATION = jsonReadtoInt(configHardware, "m_o");
@@ -439,7 +439,7 @@ void setup()  //================================================================
   }
 
 {
-  String configIP = readFile(F("ip_config.json"), 512);
+  String configIP = readFile(F("config_ip.json"), 512);
   use_static_ip = jsonReadtoInt(configSetup, "s_IP");
   Static_IP.fromString(jsonRead(configIP, "ip"));
   Gateway.fromString(jsonRead(configIP, "gateway"));
@@ -632,7 +632,7 @@ void setup()  //================================================================
 
   // MQTT
   #if (USE_MQTT)
-String configMQTT = readFile(F("mqtt_config.json"), 512);
+String configMQTT = readFile(F("config_mqtt.json"), 512);
   String str;
   if(!MqttServer.fromString(jsonRead(configMQTT, "mq_ip"))){
         jsonRead(configMQTT, "mq_ip").toCharArray(MqttHost, jsonRead(configMQTT, "mq_ip").length()+1);

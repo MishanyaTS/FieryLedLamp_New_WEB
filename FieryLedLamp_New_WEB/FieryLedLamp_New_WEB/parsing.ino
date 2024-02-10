@@ -1221,7 +1221,7 @@ void sendAlarms(char *outputBuffer)
 {
       char k[2];
 	  bool alarm_change = false;
-    	String configAlarm = readFile(F("alarm_config.json"), 512); 
+    	String configAlarm = readFile(F("config_alarm.json"), 512); 
 	#ifdef GENERAL_DEBUG
 		LOG.println ("\nТекущие установки будильника");
     	LOG.println(configAlarm);
@@ -1258,7 +1258,7 @@ void sendAlarms(char *outputBuffer)
   sprintf_P(outputBuffer, PSTR("%s %u"), outputBuffer, dawnMode + 1);
   if (alarm_change)
 	{
-	  //writeFile("alarm_config.json", configAlarm );
+	  //writeFile("config_alarm.json", configAlarm );
     timeout_save_file_changes = millis();
     bitSet (save_file_changes, 1);
 
