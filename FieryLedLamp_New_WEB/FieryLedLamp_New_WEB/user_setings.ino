@@ -506,7 +506,7 @@ void handle_time_zone() {     // Установка параметров вре�
 
 void handle_alarm ()  { 
     char i[2];
-    String configAlarm = readFile(F("alarm_config.json"), 512); 
+    String configAlarm = readFile(F("config_alarm.json"), 512); 
 	#ifdef GENERAL_DEBUG
 	LOG.println (F("\nУстановки будильника"));
    	LOG.println(configAlarm);
@@ -540,7 +540,7 @@ void handle_alarm ()  {
     DAWN_BRIGHT = jsonReadtoInt(configAlarm, "a_br");
     if (!first_entry)
         {
-         writeFile(F("alarm_config.json"), configAlarm );
+         writeFile(F("config_alarm.json"), configAlarm );
         }
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
@@ -548,7 +548,7 @@ void handle_alarm ()  {
 void save_alarms()   {
     char k[2];
 	bool alarm_change = false;
-    String configAlarm = readFile(F("alarm_config.json"), 512); 
+    String configAlarm = readFile(F("config_alarm.json"), 512); 
 	#ifdef GENERAL_DEBUG
      LOG.println (F("\nТекущие установки будильника"));
      LOG.println(configAlarm);
@@ -576,7 +576,7 @@ void save_alarms()   {
     jsonWrite(configAlarm, "after", DAWN_TIMEOUT);
     jsonWrite(configAlarm, "a_br", DAWN_BRIGHT);  
     if (alarm_change) {
-	    writeFile(F("alarm_config.json"), configAlarm );
+	    writeFile(F("config_alarm.json"), configAlarm );
 	    #ifdef GENERAL_DEBUG
         LOG.println (F("\nНовые установки будильника сохранены в файл"));
         LOG.println(configAlarm);
@@ -633,7 +633,7 @@ void handle_cycle_allwase ()  {  // Запускать режим цикл по�
 
 void handle_eff_all ()   {  //Выбрать все эффекты
     char i[4];
-    String configCycle = readFile(F("cycle_config.json"), 2048); 
+    String configCycle = readFile(F("config_cycle.json"), 2048); 
     // подготовка  строк с именами полей json 
     ESP.wdtFeed();
     for (uint8_t k=0; k<MODE_AMOUNT; k++) {
@@ -643,13 +643,13 @@ void handle_eff_all ()   {  //Выбрать все эффекты
         jsonWrite(configCycle, e, 1U);
         yield();
     }
-    writeFile(F("cycle_config.json"), configCycle );
+    writeFile(F("config_cycle.json"), configCycle );
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
 
 void handle_eff_clr ()   {  //очистить все эффекты
       char i[4];
-      String configCycle = readFile(F("cycle_config.json"), 2048); 
+      String configCycle = readFile(F("config_cycle.json"), 2048); 
       // подготовка  строк с именами полей json 
       ESP.wdtFeed();
       for (uint8_t k=0; k<MODE_AMOUNT; k++)
@@ -660,13 +660,13 @@ void handle_eff_clr ()   {  //очистить все эффекты
         jsonWrite(configCycle, e, 0U);
         yield();
       }
-    writeFile(F("cycle_config.json"), configCycle );
+    writeFile(F("config_cycle.json"), configCycle );
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
 
 void handle_cycle_set ()  {  // Выбор эффектов для Цикла 
       char i[4];
-      String configCycle = readFile(F("cycle_config.json"), 2048); 
+      String configCycle = readFile(F("config_cycle.json"), 2048); 
       #ifdef GENERAL_DEBUG
       LOG.println (F("\nВыбор эффектов для Цикла"));
       LOG.println(configCycle);
@@ -689,7 +689,7 @@ void handle_cycle_set ()  {  // Выбор эффектов для Цикла
      #endif     
       if (!first_entry)
         {
-         writeFile(F("cycle_config.json"), configCycle );
+         writeFile(F("config_cycle.json"), configCycle );
         }
          HTTP.send(200, F("text/plain"), F("OK"));
 }
@@ -697,7 +697,7 @@ void handle_cycle_set ()  {  // Выбор эффектов для Цикла
 void cycle_get ()  { // сохранение выбранных эффектов в файл
       char i[4];
 	  bool cycle_change = false;
-      String configCycle = readFile(F("cycle_config.json"), 2048); 
+      String configCycle = readFile(F("config_cycle.json"), 2048); 
       #ifdef GENERAL_DEBUG
       LOG.println (F("\nВыбор эффектов для Цикла"));
       LOG.println(configCycle);
@@ -716,7 +716,7 @@ void cycle_get ()  { // сохранение выбранных эффектов
           yield();
 		}
 	if (cycle_change)	{
-	    writeFile(F("cycle_config.json"), configCycle );
+	    writeFile(F("config_cycle.json"), configCycle );
 	    #ifdef GENERAL_DEBUG
 		LOG.println (F("\nНовы выбор эффектов для Цикла сохранен в файл"));
     	LOG.println(configCycle);
@@ -775,7 +775,7 @@ void handle_all_br ()   {  //Общая яркость
 
 void handle_multiple_lamp () {
     String str;
-    String configMultilamp = readFile(F("multilamp_config.json"), 512);
+    String configMultilamp = readFile(F("config_multilamp.json"), 512);
     jsonWrite(configMultilamp, "ml1", HTTP.arg("ml1").toInt());
     jsonWrite(configMultilamp, "ml2", HTTP.arg("ml2").toInt());
     jsonWrite(configMultilamp, "ml3", HTTP.arg("ml3").toInt());
@@ -791,7 +791,7 @@ void handle_multiple_lamp () {
     jsonWrite(configMultilamp, "comment3", HTTP.arg("comment3"));   
     jsonWrite(configMultilamp, "comment4", HTTP.arg("comment4"));
     jsonWrite(configMultilamp, "comment5", HTTP.arg("comment5"));  
-    writeFile(F("multilamp_config.json"), configMultilamp );
+    writeFile(F("config_multilamp.json"), configMultilamp );
     ml1 = jsonReadtoInt(configMultilamp, "ml1");
     ml2 = jsonReadtoInt(configMultilamp, "ml2");
     ml3 = jsonReadtoInt(configMultilamp, "ml3");
@@ -821,7 +821,7 @@ void handle_multiple_lamp () {
 
 void multilamp_get ()   {
     String str;
-    String configMultilamp = readFile(F("multilamp_config.json"), 512);
+    String configMultilamp = readFile(F("config_multilamp.json"), 512);
     ml1 = jsonReadtoInt(configMultilamp, "ml1");
     ml2 = jsonReadtoInt(configMultilamp, "ml2");
     ml3 = jsonReadtoInt(configMultilamp, "ml3");
@@ -1134,7 +1134,7 @@ void handle_night_advert_volume ()   {
 
 void handle_sound_set ()   {    // Выбор папок для озвучивания эффектов
     char i[4];
-    String configSound = readFile(F("sound_config.json"), 2048); 
+    String configSound = readFile(F("config_sound.json"), 2048); 
     #ifdef GENERAL_DEBUG
     LOG.println (F("\nВыбор папок для озвучивания эффектов"));
     LOG.println(configSound);
@@ -1164,7 +1164,7 @@ void handle_sound_set ()   {    // Выбор папок для озвучива
     LOG.println (F("]"));
     #endif     
     if (!first_entry) {
-        writeFile(F("sound_config.json"), configSound );
+        writeFile(F("config_sound.json"), configSound );
     }
     HTTP.send(200, F("text/plain"), F("OK"));
 }
@@ -1251,7 +1251,7 @@ void handle_alarm_fold_sel ()   {
 
 void handle_test ()   {
     uint8_t tmp;
-    String configHardware = readFile(F("hardware_config.json"), 2048);
+    String configHardware = readFile(F("config_hardware.json"), 2048);
     tmp = HTTP.arg("tim_h").toInt();
     ADVERT_TIMER_H = 100 * tmp;
     jsonWrite(configHardware, "tim_h", tmp);
@@ -1261,7 +1261,7 @@ void handle_test ()   {
     tmp = HTTP.arg("delay").toInt();
     mp3_delay = 10 * tmp;
     jsonWrite(configHardware, "delay", tmp);
-    writeFile(F("hardware_config.json"), configHardware );
+    writeFile(F("config_hardware.json"), configHardware );
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
     printTime(thisTime, true, ONflag);
     #ifdef GENERAL_DEBUG
@@ -1278,7 +1278,7 @@ void handle_test ()   {
 
 
 void handle_current_limit ()   {
-    String configHardware = readFile(F("hardware_config.json"), 1024);
+    String configHardware = readFile(F("config_hardware.json"), 1024);
     current_limit = constrain (HTTP.arg("cur_lim").toInt(), 100, CURRENT_LIMIT);
     jsonWrite(configHardware, "cur_lim", current_limit);
     FastLED.setMaxPowerInVoltsAndMilliamps(5, current_limit);
@@ -1286,24 +1286,24 @@ void handle_current_limit ()   {
     LOG.print (F("\nЛимит тока current_limit = "));
     LOG.println(current_limit);
     #endif
-    writeFile(F("hardware_config.json"), configHardware );
+    writeFile(F("config_hardware.json"), configHardware );
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
 
 
 void handle_matrix_tipe ()   {
-    String configHardware = readFile(F("hardware_config.json"), 1024);
+    String configHardware = readFile(F("config_hardware.json"), 1024);
     MATRIX_TYPE = HTTP.arg("m_t").toInt();
     jsonWrite(configHardware, "m_t", MATRIX_TYPE);
-    writeFile(F("hardware_config.json"), configHardware );
+    writeFile(F("config_hardware.json"), configHardware );
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
 
 void handle_matrix_orientation ()   {
-    String configHardware = readFile(F("hardware_config.json"), 1024);    
+    String configHardware = readFile(F("config_hardware.json"), 1024);    
     ORIENTATION = HTTP.arg("m_o").toInt();
     jsonWrite(configHardware, "m_o", ORIENTATION);
-    writeFile(F("hardware_config.json"), configHardware );
+    writeFile(F("config_hardware.json"), configHardware );
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
 
@@ -1338,7 +1338,7 @@ void handle_reset_to_default ()   {
         ESP.wdtFeed();
         showWarning(CRGB::Red, 500, 250U);
     }
-    if(FileCopy (F("/default/cycle_config.json"), F("/cycle_config.json"))) {
+    if(FileCopy (F("/default/config_cycle.json"), F("/config_cycle.json"))) {
         ESP.wdtFeed();
         showWarning(CRGB::Green, 500, 250U);
     }
@@ -1346,7 +1346,7 @@ void handle_reset_to_default ()   {
         ESP.wdtFeed();
         showWarning(CRGB::Red, 500, 250U);
     }
-    if(FileCopy (F("/default/sound_config.json"), F("/sound_config.json"))) {
+    if(FileCopy (F("/default/config_sound.json"), F("/config_sound.json"))) {
         ESP.wdtFeed();
         showWarning(CRGB::Green, 500, 250U);
     }
@@ -1354,7 +1354,7 @@ void handle_reset_to_default ()   {
         ESP.wdtFeed();
         showWarning(CRGB::Red, 500, 250U);
     }
-    if(FileCopy (F("/default/alarm_config.json"), F("/alarm_config.json"))) {
+    if(FileCopy (F("/default/config_alarm.json"), F("/config_alarm.json"))) {
         ESP.wdtFeed();
         showWarning(CRGB::Green, 500, 250U);
     }
@@ -1362,7 +1362,7 @@ void handle_reset_to_default ()   {
         ESP.wdtFeed();
         showWarning(CRGB::Red, 500, 250U);
     }
-    if(FileCopy (F("/default/hardware_config.json"), F("/hardware_config.json"))) {
+    if(FileCopy (F("/default/config_hardware.json"), F("/config_hardware.json"))) {
         ESP.wdtFeed();
         showWarning(CRGB::Green, 500, 250U);
     }
@@ -1370,7 +1370,23 @@ void handle_reset_to_default ()   {
         ESP.wdtFeed();
         showWarning(CRGB::Red, 500, 250U);
     }
-    if(FileCopy (F("/default/multilamp_config.json"), F("/multilamp_config.json"))) {
+    if(FileCopy (F("/default/config_multilamp.json"), F("/config_multilamp.json"))) {
+        ESP.wdtFeed();
+        showWarning(CRGB::Green, 500, 250U);
+    }
+    else {
+        ESP.wdtFeed();
+        showWarning(CRGB::Red, 500, 250U);
+    }
+    if(FileCopy (F("/default/config_ip.json"), F("/config_ip.json"))) {
+        ESP.wdtFeed();
+        showWarning(CRGB::Green, 500, 250U);
+    }
+    else {
+        ESP.wdtFeed();
+        showWarning(CRGB::Red, 500, 250U);
+    }
+    if(FileCopy (F("/default/config_mqtt.json"), F("/config_mqtt.json"))) {
         ESP.wdtFeed();
         showWarning(CRGB::Green, 500, 250U);
     }
@@ -1433,12 +1449,12 @@ void handle_color_text_fon ()  { //выводить бегущую строку 
 
 void handle_set_static_ip ()   {
     uint8_t tmp;
-    String configIP = readFile(F("hardware_config.json"), 2048);
+    String configIP = readFile(F("config_ip.json"), 2048);
     jsonWrite(configIP, "ip", HTTP.arg("ip1"));
     jsonWrite(configIP, "gateway", HTTP.arg("gateway"));
     jsonWrite(configIP, "subnet", HTTP.arg("subnet"));
     jsonWrite(configIP, "dns", HTTP.arg("dns"));
-    writeFile(F("ip_config.json"), configIP );
+    writeFile(F("config_ip.json"), configIP );
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
 
@@ -1454,7 +1470,7 @@ void handle_auto_bri ()   {
 #if (USE_MQTT)
 
 void handle_mqtt_set ()   {
-    String configMQTT = readFile(F("mqtt_config.json"), 512);
+    String configMQTT = readFile(F("config_mqtt.json"), 512);
     String str = HTTP.arg("mq_ip");
     if(!MqttServer.fromString(str)){
         str.toCharArray(MqttHost, str.length()+1);
@@ -1471,7 +1487,7 @@ void handle_mqtt_set ()   {
     str = HTTP.arg("mq_pass");
     str.toCharArray(MqttPassword, str.length()+1);
     jsonWrite(configMQTT, "mq_pass", str);
-    writeFile(F("mqtt_config.json"), configMQTT );
+    writeFile(F("config_mqtt.json"), configMQTT );
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
     #ifdef GENERAL_DEBUG
      LOG.print("MQTT server ");
@@ -1489,10 +1505,10 @@ void handle_mqtt_set ()   {
 }
 
 void handle_mqtt_on ()   {
-    String configMQTT = readFile(F("mqtt_config.json"), 512);
+    String configMQTT = readFile(F("config_mqtt.json"), 512);
     MqttOn = HTTP.arg("mq_on").toInt();
     jsonWrite(configMQTT, "mq_on", MqttOn);
-    writeFile(F("mqtt_config.json"), configMQTT );
+    writeFile(F("config_mqtt.json"), configMQTT );
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 
 }

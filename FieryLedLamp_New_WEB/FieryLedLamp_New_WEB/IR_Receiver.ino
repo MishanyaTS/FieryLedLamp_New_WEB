@@ -741,11 +741,11 @@ void IR_Equalizer()   {     // Устанавливаем эквалайзер
 }
 
 void Favorit_Add_Del(bool direction)   {
-    String configCycle = readFile(F("cycle_config.json"), 2048);
+    String configCycle = readFile(F("config_cycle.json"), 2048);
     String e = "e" + String (currentMode);
     jsonWrite(configCycle, e, direction ? 1 : 0);
     FavoritesManager::FavoriteModes[currentMode] = (direction ? 1 : 0);
-    //writeFile("cycle_config.json", configCycle );
+    //writeFile("config_cycle.json", configCycle );
     timeout_save_file_changes = millis();
     bitSet (save_file_changes, 2);
     if (direction) showWarning(CRGB::Blue, 500, 250U);  // мигание синим цветом 0.5 секунды
