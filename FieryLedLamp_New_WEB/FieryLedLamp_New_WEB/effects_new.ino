@@ -3750,3 +3750,389 @@ void Serpentine() {
     }
   }
 }
+
+// ============== Scanner ==============
+//             © SlingMaster
+//                Сканер
+// =====================================
+void Scanner() {
+  static byte i;
+  static bool v_scanner = HEIGHT >= WIDTH;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(random8(0, 100), random8(128, 255U));
+    }
+    deltaValue = 0;
+#endif
+    loadingFlag = false;
+    hue = modes[currentMode].Scale * 2.55;
+    deltaHue = modes[currentMode].Scale;
+    i = 5;
+    FastLED.clear();
+  }
+
+  if (step % 2U == 0U) {
+    if (deltaValue == 0U) {
+      i++;
+    } else {
+      i--;
+    }
+    if (deltaHue == 0U) {
+      hue++;
+    }
+  }
+  if (i > 250) {
+    i = 0;
+    deltaValue = 0;
+  }
+  fadeToBlackBy(leds, NUM_LEDS, v_scanner ? 50 : 30);
+
+  if (v_scanner) {
+    /* vertical scanner */
+    if (i >= HEIGHT - 1) {
+      deltaValue = 1;
+    }
+
+    for (uint16_t x = 0; x < WIDTH; x++) {
+      leds[XY(x, i)] = CHSV(hue, 255U, 180U);
+      if ((x == i / 2.0) & (i % 2U == 0U)) {
+        if (deltaValue == 0U) {
+          drawPixelXYF(random(WIDTH) - (random8(2U) ? 1.5 : 1), i * 0.9, CHSV(hue, 16U, 255U) );
+        } else {
+          drawPixelXYF(random(WIDTH) - 1.5, i * 1.1, CHSV(hue, 16U, 255U) );
+        }
+      }
+    }
+  } else {
+    /* horizontal scanner */
+    if (i >= WIDTH - 1) {
+      deltaValue = 1;
+    }
+
+    for (uint16_t y = 0; y < HEIGHT; y++) {
+      leds[XY(i, y)] = CHSV(hue, 255U, 180U);
+      if ((y == i / 2.0) & (i % 2U == 0U)) {
+        if (deltaValue == 0U) {
+          drawPixelXYF(i * 0.9, random(HEIGHT) - (random8(2U) ? 1.5 : 1), CHSV(hue, 16U, 255U) );
+        } else {
+          drawPixelXYF( i * 1.1, random(HEIGHT) - 1.5, CHSV(hue, 16U, 255U) );
+        }
+      }
+    }
+  }
+  step++;
+}
+
+// ============ Night City =============
+//             © SlingMaster
+//              Ночной Город
+// =====================================
+void NightCity() {
+  const byte PADDING = HEIGHT * 0.13;
+  // ---------------------
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(50, random8(2, 254U));
+    }
+#endif
+    loadingFlag = false;
+    hue = 64;
+    for (uint16_t i = 0; i < WIDTH; i++) {
+      noise3d[0][i][0] = PADDING + 2;
+      noise3d[0][i][1] = PADDING + 3;
+    }
+    FastLED.clear();
+  }
+  // ---------------------
+
+  byte xx = random8(WIDTH);
+  byte yy = random8(HEIGHT);
+  byte fade = 80; //60 - abs(128 - step) / 3;
+  fadeToBlackBy(leds, NUM_LEDS, fade);
+
+  // -----------------
+  for (uint16_t y = 0; y < HEIGHT; y++) {
+    for (uint16_t x = 0; x < WIDTH; x++) {
+      if (y > PADDING) {
+        if (x % 6U == 0U) {
+          /* draw Elevator */
+          leds[XY(x, noise3d[0][x][1])] = CHSV(160, 255U, 255U);
+        } else {
+          /* draw light ------- */
+          // if ((x % 2U == 0U) & (y % 2U == 0U)) {
+          bool flag = (modes[currentMode].Scale > 50U) ? true : x % 2U == 0U;
+          if (flag & (y % 2U == 0U)) {
+            if ((x == xx) & (y == yy)) {
+              /* change light */
+              if (noise3d[0][x][y] == 0) {
+                noise3d[0][x][y] = random8(1, 5);
+                if (modes[currentMode].Speed > 80) {
+                  noise3d[0][random8(WIDTH)][random8(PADDING + 1, HEIGHT - 1)] = 6;
+                }
+                if (modes[currentMode].Speed > 160) {
+                  noise3d[0][random8(WIDTH)][random8(PADDING + 1, HEIGHT - 1)] = 6;
+                }
+
+              } else {
+                noise3d[0][x][y] = 0;
+              }
+            }
+            if (modes[currentMode].Speed > 250) {
+              noise3d[0][x][y] = 2;
+            }
+            /* draw light ----- */
+            if (noise3d[0][x][y] > 0) {
+              if (noise3d[0][x][y] == 1U) {
+                leds[XY(x, y)] = CHSV(32U, 200U, 255U);
+              } else {
+                leds[XY(x, y)] =  CHSV(128U, 32U, 255U);
+              }
+            }
+          }
+        }
+      } else {
+        /* draw the lower floors */
+        if (y == PADDING) {
+          leds[XY(x, y)] = CHSV(hue, 255U, 255U);
+        } else {
+          leds[XY(x, y)] = CHSV(96U, 128U, 80U + y * 32);
+        }
+      }
+    }
+  }
+
+  /* change elevators position */
+  if (step % 4U == 0U) {
+    for (uint16_t i = 0; i < WIDTH; i++) {
+      if (i % 6U == 0U) {
+        /* 1 current floor */
+        if (noise3d[0][i][0] > noise3d[0][i][1]) noise3d[0][i][1]++;
+        if (noise3d[0][i][0] < noise3d[0][i][1]) noise3d[0][i][1]--;
+      }
+    }
+  }
+
+  /* 0 set target floor ----- */
+  if (step % 128U == 0U ) {
+    for (uint16_t i = 0; i < WIDTH; i++) {
+      if (i % 6U == 0U) {
+        /* 0 target floor ----- */
+        byte target_floor = random8(PADDING + 1, HEIGHT - 1);
+        if (target_floor % 2U) target_floor++;
+        noise3d[0][i][0] = target_floor;
+      }
+    }
+  }
+
+  hue++;
+  step++;
+}
+
+// ============== Avrora ===============
+//             © SlingMaster
+//                Аврора
+// =====================================
+void Avrora() {
+  const byte PADDING = HEIGHT * 0.25;
+  const float BR_INTERWAL = WIDTH / HEIGHT;
+
+  // ---------------------
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(50, random8(2, 254U));
+    }
+#endif
+    loadingFlag = false;
+    deltaValue = 0;
+    hue = 0;
+    FastLED.clear();
+  }
+  // ---------------------
+
+  byte step1 = map8(modes[currentMode].Speed, 10U, 60U);
+  uint16_t ms = millis();
+  double freq = 3000;
+  float mn = 255.0 / 13.8;
+  const byte fade = 30; //60 - abs(128 - step) / 3;
+  fadeToBlackBy(leds, NUM_LEDS, fade);
+
+  // -----------------
+  for (uint16_t y = 0; y < HEIGHT; y++) {
+    uint32_t yy = y * 256;
+    uint32_t x1 = beatsin16(step1, WIDTH, (HEIGHT - 1) * 256, WIDTH, y * freq + 32768) / 1.5;
+
+    /* change color -------- */
+    byte cur_color = ms / 29 + y * 256 / HEIGHT;
+    CRGB color = CHSV(cur_color, 255, 255 - y * HEIGHT / 8);
+    byte br = constrain(255 - y * HEIGHT / 5, 0, 200);
+    CRGB color2 = CHSV(cur_color - 32, 255 - y * HEIGHT / 4, br);
+
+    wu_pixel( x1 + hue + PADDING * hue / 2, yy, &color);
+    wu_pixel( abs((WIDTH - 1) * 256 - (x1 + hue)), yy - PADDING * hue, &color2);
+  }
+
+  step++;
+  if (step % 64) {
+    if (deltaValue == 1) {
+      hue++;
+      if (hue >= 255) {
+        deltaValue = 0;
+      }
+    } else {
+      hue--;
+      if (hue < 1) {
+        deltaValue = 1;
+      }
+    }
+  }
+}
+
+// =========== Rainbow Spot ============
+//             © SlingMaster
+//            Радужное Пятно
+// =====================================
+void RainbowSpot() {
+  const uint8_t STEP = 255 / CENTER_X_MINOR;
+  float distance;
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(random8(100), random8(2, 254U));
+    }
+#endif
+    loadingFlag = false;
+    deltaValue = modes[currentMode].Scale;
+    hue = 96;
+    emitterY = 0;
+    FastLED.clear();
+  }
+
+  // Calculate the radius based on the sound value --
+  float radius = abs(128 - step) / 127.0 * max(CENTER_X_MINOR, CENTER_Y_MINOR);
+
+  // Loop through all matrix points -----------------
+  for (uint8_t x = 0; x < WIDTH; x++) {
+    for (uint8_t y = 0; y < HEIGHT; y++) {
+      // Calculate the distance from the center to the current point
+      distance = sqrt(pow(x - CENTER_X_MINOR - 1, 2) + pow(y - CENTER_Y_MINOR - emitterY, 2));
+      hue = step + distance * radius;
+
+      // Check if the point is inside the radius ----
+      deltaHue = 200 - STEP * distance * 0.25;
+
+      if (distance < radius) {
+        if (modes[currentMode].Scale > 50) {
+          if (x % 2 & y % 2) {
+            drawPixelXYF(x, y - CENTER_Y_MINOR / 2 + emitterY, CHSV(hue, 255, 64));
+          } else {
+            leds[XY(x, y)] = CHSV(hue + 32, 255 - distance, deltaHue);
+          }
+        } else {
+          leds[XY(x, y)] = CHSV(hue, 255 - distance, 255);
+        }
+
+      } else {
+        if (modes[currentMode].Scale > 75) {
+          leds[XY(x, y)] = CHSV(hue + 96, 255, deltaHue);
+        } else {
+          leds[XY(x, y)] = CHSV(hue, 255, deltaHue);
+        }
+      }
+    }
+  }
+
+  if (modes[currentMode].Scale > 50) {
+    if (emitterY > pcnt) {
+      emitterY -= 0.25;
+    } else {
+      if (emitterY < pcnt) {
+        emitterY += 0.25;
+      } else {
+        pcnt = random8(CENTER_Y_MINOR);
+      }
+    }
+  } else {
+    emitterY = 0;
+  }
+
+  blurScreen(48);
+  step++;
+}
+
+// ============== Fountain =============
+//             © SlingMaster
+//                Фонтан
+// =====================================
+void Fountain() {
+  uint8_t const gamma[6] = {0, 96, 128, 160, 240, 112};
+  const byte PADDING = round(HEIGHT / 8);
+  byte br;
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(random8(100), random8(2, 254U));
+    }
+#endif
+    loadingFlag = false;
+    deltaValue = modes[currentMode].Scale / 20;
+    emitterY = 0;
+    FastLED.clear();
+  }
+
+  float radius = abs(128 - step) / 127.0 * CENTER_Y_MINOR;
+  for (uint8_t y = 0; y < HEIGHT; y++) {
+    for (uint8_t x = 0; x < WIDTH; x++) {
+
+      if (x % 2 == 0) {
+        br = constrain(255 / (emitterY + 1) * y, 48, 255);
+
+        if ((x % 4) == 0) {
+          hue = gamma[deltaValue];
+          if (y == byte(emitterY - radius) + random8(1, 4)) {
+            if (step % 2 == 0) {
+              drawPixelXYF(x, y + 0.5, CHSV(hue, 200, 255));
+            } else {
+              drawPixelXY(x, y, CHSV(hue, 200, 255));
+            }
+          } else {
+            drawPixelXY(x, y, CHSV(hue, 255, (y > emitterY - radius / 2) ? 0 : br));
+          }
+        } else {
+          hue = gamma[deltaValue + 1];
+          if (y == byte(emitterY * 0.70 + radius + random8(3))) {
+            drawPixelXYF(x, y - 0.5, CHSV(hue - radius, 160, 255));
+          } else {
+            byte delta = emitterY * 0.70 + radius;
+            drawPixelXY(x, y, CHSV(hue - radius, 255,  ( y > delta) ? 0 : br));
+          }
+        }
+      } else {
+        // clear blur ----
+        if (pcnt > PADDING + 2) drawPixelXY(x, y, CRGB::Black);
+      }
+    }
+  }
+
+  if ((emitterY <= PADDING * 2) | (emitterY > HEIGHT - PADDING - 1)) blurScreen(32);
+
+  if (emitterY > pcnt) {
+    emitterY -= 0.5;
+    if (abs(pcnt - emitterY ) < PADDING) {
+      if (emitterY > pcnt) emitterY -= 0.5;
+    }
+  } else {
+    if (emitterY < pcnt) {
+      emitterY += 3;
+    } else {
+      pcnt = random8(2, HEIGHT - PADDING - 1);
+    }
+  }
+  step++;
+}
