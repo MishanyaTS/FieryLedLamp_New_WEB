@@ -194,7 +194,7 @@ void processParams(char *prefix, const char *paramValue)
       MqttManager::needToPublish = true;
     }
     #endif
-    SetBrightness(modes[currentMode].Brightness);        
+    SetBrightness(modes[currentMode].Brightness);    
     
     updateRemoteBlynkParams();
   }
@@ -204,20 +204,20 @@ void processParams(char *prefix, const char *paramValue)
       modes[currentMode].Brightness = 10U;
       modes[currentMode].Speed      = 99U;
       modes[currentMode].Scale      = 38U;
-	  jsonWrite(configSetup, "br", modes[currentMode].Brightness);
-	  jsonWrite(configSetup, "sp", modes[currentMode].Speed);
-	  jsonWrite(configSetup, "sc", modes[currentMode].Scale);
+      jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+      jsonWrite(configSetup, "sp", modes[currentMode].Speed);
+      jsonWrite(configSetup, "sc", modes[currentMode].Scale);
       otaManager.RequestOtaUpdate();
       delay(70);
       //if (otaManager.RequestOtaUpdate()) по идее, нужен положительный ответ от менеджера, но он не поступает с первого раза...
       otaManager.RequestOtaUpdate();
       //{
         currentMode = EFF_MATRIX;                             // принудительное включение режима "Матрица" для индикации перехода в режим обновления по воздуху
-		jsonWrite(configSetup, "eff_sel", currentMode);
+        jsonWrite(configSetup, "eff_sel", currentMode);
         FastLED.clear();
         delay(1);
         ONflag = true;
-		jsonWrite(configSetup, "Power", ONflag);
+        jsonWrite(configSetup, "Power", ONflag);
         changePower();
       //}
       updateRemoteBlynkParams();

@@ -14,7 +14,11 @@
 #ifdef OTA
 
 #include <ArduinoOTA.h>
-#include <ESP8266mDNS.h>
+#ifdef ESP32_USED
+ #include <ESPmDNS.h>
+#else
+ #include <ESP8266mDNS.h>
+#endif
 
 #define CONFIRMATION_TIMEOUT  (7U)                         // время в сеундах, в течение которого нужно дважды подтвердить старт обновлениЯ по воздуху (иначе сброс в None)
 
@@ -127,7 +131,11 @@ class OtaManager
       char espHostName[65], ap_pass[AP_PASS.length()+1],lamp_name[LAMP_NAME.length()+1];
 	  LAMP_NAME.toCharArray(lamp_name,LAMP_NAME.length()+1);
       AP_PASS.toCharArray(ap_pass,AP_PASS.length()+1);
-      sprintf_P(espHostName, PSTR("%s-%u"), lamp_name, ESP.getChipId());
+      #ifdef ESP32_USED
+       sprintf_P(espHostName, PSTR("%s-%ul"), lamp_name, get_Chip_ID());
+      #else
+       sprintf_P(espHostName, PSTR("%s-%u"), lamp_name, ESP.getChipId());
+      #endif
       ArduinoOTA.setPort(ESP_OTA_PORT);
       ArduinoOTA.setHostname(espHostName);
       ArduinoOTA.setPassword(ap_pass);
@@ -145,7 +153,7 @@ class OtaManager
           strcpy_P(type, PSTR("filesystem"));
         }
 
-        // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+        // NOTE: if updating LittleFS this would be the place to unmount LittleFS using LittleFS.end()
 
         #ifdef GENERAL_DEBUG
         LOG.printf_P(PSTR("Start updating %s\n"), type);

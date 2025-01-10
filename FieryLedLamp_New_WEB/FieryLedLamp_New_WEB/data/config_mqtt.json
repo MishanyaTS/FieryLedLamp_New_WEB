@@ -3,5 +3,7 @@
 "mq_ip":"",
 "mq_port":"",
 "mq_user":"",
-"mq_pass":""
+"mq_pass":"",
+"topic":"FieryLedLamp",
+"mq_prd":"0"
 }

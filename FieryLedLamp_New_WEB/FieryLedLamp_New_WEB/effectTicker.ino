@@ -166,13 +166,19 @@ void effectsTick()
 
 void changePower()
 {
-  uint8_t k;    
-  if (AutoBrightness && !day_night)      
-    k = constrain(modes[currentMode].Brightness >> AutoBrightness, 1, 100);
-  else
-    k = modes[currentMode].Brightness;
+  uint8_t k;
+  if (dawnFlag == 2) {
+      k = DAWN_BRIGHT;
+      //Serial.print("dawnFlag = ");
+      //Serial.println(dawnFlag);
+      //dawnFlag = 0;
+  }
+  else  if (AutoBrightness && !day_night)      
+          k = constrain(modes[currentMode].Brightness >> AutoBrightness, 1, 100);
+       else
+         k = modes[currentMode].Brightness;
 
-  if (ONflag)
+  if (ONflag && !dawnFlag)
   {
     effectsTick();
     #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором
@@ -190,7 +196,8 @@ void changePower()
   }
   else
   {
-    effectsTick();
+    if(dawnFlag != 2) effectsTick();
+    else dawnFlag = 0;
     for (uint8_t i = k; i > 0; i = constrain(i - (k < 60 ? 1 : 4), 0, k))
     {
       FastLED.setBrightness(i);
@@ -203,6 +210,11 @@ void changePower()
     #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором
     digitalWrite(MOSFET_PIN, !MOSFET_LEVEL);
     #endif
+    if (ONflag) 
+    {
+        changePower();
+        return;
+    }
   }
   TimerManager::TimerRunning = false;
   TimerManager::TimerHasFired = false;
@@ -253,28 +265,35 @@ void noTimeClear(){
 #endif //WARNING_IF_NO_TIME
 
 void Eff_Tick () {
-    #ifdef MP3_TX_PIN
+  #ifdef MP3_PLAYER_USE
     mp3_folder=effects_folders[currentMode];
-    #endif  //MP3_TX_PIN
-   #ifdef USE_MULTIPLE_LAMPS_CONTROL
-      if (repeat_multiple_lamp_control)  {
-          for ( uint8_t n=0; n< MODE_AMOUNT; n++)
-          {
-              if (eff_num_correct[n] == currentMode) {
-                  jsonWrite(configSetup, "eff_sel", n);
-                  break;
-              }
-          } 
-      jsonWrite(configSetup, "br", modes[currentMode].Brightness);
-      jsonWrite(configSetup, "sp", modes[currentMode].Speed);
-      jsonWrite(configSetup, "sc", modes[currentMode].Scale);          
-          multiple_lamp_control ();
-          repeat_multiple_lamp_control = false;
-      }
-      #endif  //USE_MULTIPLE_LAMPS_CONTROL
+  #endif  // MP3_PLAYER_USE
+  #ifdef USE_MULTIPLE_LAMPS_CONTROL
+    if (repeat_multiple_lamp_control)  {
+        for ( uint8_t n=0; n< MODE_AMOUNT; n++)
+        {
+            if (eff_num_correct[n] == currentMode) {
+                jsonWrite(configSetup, "eff_sel", n);
+                break;
+            }
+        }
+        #ifdef MP3_PLAYER_USE
+        if(mp3_player_connect == 4) {
+          mp3_loop();
+          jsonWrite(configSetup, "fold_sel", CurrentFolder);
+        }
+        #endif  // MP3_PLAYER_USE
+        jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+        jsonWrite(configSetup, "sp", modes[currentMode].Speed);
+        jsonWrite(configSetup, "sc", modes[currentMode].Scale);          
+        multiple_lamp_control ();
+        repeat_multiple_lamp_control = false;
+    }
+    #endif  //USE_MULTIPLE_LAMPS_CONTROL
+
   if (RuninTextOverEffects)
   {
-      if (RuninTextOverEffects > 60 || ((thisTime % RuninTextOverEffects == 0U) && Last_Time_RuninText != thisTime) || !Fill_String)
+    if (RuninTextOverEffects > 60 || ((thisTime % RuninTextOverEffects == 0U) && Last_Time_RuninText != thisTime) || !Fill_String)
       {
         Last_Time_RuninText = thisTime;
         Fill_String = fillString(TextTicker, CHSV(ColorRunningText, 255U, 255U), true);

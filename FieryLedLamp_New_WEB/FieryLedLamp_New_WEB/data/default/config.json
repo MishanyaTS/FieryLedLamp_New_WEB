@@ -37,7 +37,7 @@
 "timer":15,
 "alt":0,
 "vol":10,
-"on_sound":1,
+"on_sound":0,
 "on_day_adv":1,
 "day_vol":17,
 "on_night_adv":0,

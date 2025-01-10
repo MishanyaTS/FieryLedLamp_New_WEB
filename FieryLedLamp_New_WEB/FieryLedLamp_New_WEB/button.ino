@@ -13,16 +13,28 @@ void buttonTick()
     if (touch.isStep() && touch.getHoldClicks() == 14U) {
         LOG.println("\n*** Reset to Default ***");
         showWarning(CRGB::Red, 500, 250U);
-        ESP.wdtFeed();
+        #ifdef ESP32_USED
+         esp_task_wdt_reset();
+        #else
+         ESP.wdtFeed();
+        #endif
         setModeSettings();
         updateSets();    
         if(FileCopy (F("/default/config.json"), F("/config.json"))) {
-            ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
             showWarning(CRGB::Green, 500, 250U);
             ESP.restart();
         }
         else {
-            ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
             showWarning(CRGB::Red, 500, 250U);
         }
     }  
@@ -36,18 +48,18 @@ void buttonTick()
   // однократное нажатие
   if (clickCount == 1U)
   {
-    if (dawnFlag) {
-        #ifdef MP3_TX_PIN
+    if (dawnFlag == 1) {
+        #ifdef MP3_PLAYER_USE
         if (alarm_sound_flag) {
            send_command(0x0E,0,0,0); //Пауза
            mp3_stop = true;
            alarm_sound_flag = false;
         }
         else
-        #endif  //MP3_TX_PIN
+        #endif  // MP3_PLAYER_USE
         {
             manualOff = true;
-            dawnFlag = false;
+            dawnFlag = 2;
             #ifdef TM1637_USE
             clockTicker_blink();
             #endif
@@ -59,13 +71,13 @@ void buttonTick()
     else
     {
       ONflag = !ONflag;
-	  jsonWrite(configSetup, "Power", ONflag);
+      jsonWrite(configSetup, "Power", ONflag);
     }
     if (!ONflag)  {
         timeout_save_file_changes = millis() - SAVE_FILE_DELAY_TIMEOUT;
         if (!FavoritesManager::FavoritesRunning) EepromManager::EepromPut(modes);
         save_file_changes = 7;
-        timeTick();
+        Save_File_Changes();
     }
     else {
         EepromManager::EepromGet(modes);
@@ -96,15 +108,15 @@ void buttonTick()
 
 
   // двухкратное нажатие
-  if (clickCount == 2U)
-     #ifdef MP3_TX_PIN
-     if (dawnFlag) {            //if (dawnFlag && alarm_sound_flag) {
+  if (clickCount == 2U){
+     #ifdef MP3_PLAYER_USE
+     if (dawnFlag == 1) {            //if (dawnFlag && alarm_sound_flag) {
         //myDFPlayer.pause();
         send_command(0x0E,0,0,0);  //Пауза
         mp3_stop = true;
         alarm_sound_flag = false;
         manualOff = true;
-        dawnFlag = false;
+        dawnFlag = 2;
         #ifdef TM1637_USE
         clockTicker_blink();
         #endif
@@ -112,13 +124,13 @@ void buttonTick()
         changePower();
        }
        else
-       #endif  //MP3_TX_PIN
+       #endif  // MP3_PLAYER_USE
       
   if (ONflag)    
   {
     uint8_t temp = jsonReadtoInt(configSetup, "eff_sel");
     if (Favorit_only)
-	{
+    {
       uint8_t lastMode = currentMode;
       do 
       {
@@ -128,12 +140,12 @@ void buttonTick()
       if (currentMode == lastMode) // если ни один режим не добавлен в избранное, всё равно куда-нибудь переключимся
         if (++temp >= MODE_AMOUNT) temp = 0;
         currentMode = eff_num_correct[temp];
-	}
+    }
     else
       if (++temp >= MODE_AMOUNT) temp = 0;
     currentMode = eff_num_correct[temp];
-	jsonWrite(configSetup, "eff_sel", temp);
-	jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+    jsonWrite(configSetup, "eff_sel", temp);
+    jsonWrite(configSetup, "br", modes[currentMode].Brightness);
     jsonWrite(configSetup, "sp", modes[currentMode].Speed);
     jsonWrite(configSetup, "sc", modes[currentMode].Scale);
     SetBrightness(modes[currentMode].Brightness);
@@ -155,14 +167,14 @@ void buttonTick()
     repeat_multiple_lamp_control = true;
     #endif  //USE_MULTIPLE_LAMPS_CONTROL
   }
-
+  }
 
   // трёхкратное нажатие
   if (ONflag && clickCount == 3U)
   {
     uint8_t temp = jsonReadtoInt(configSetup, "eff_sel");
-	if (Favorit_only) 
-	{
+    if (Favorit_only) 
+    {
       uint8_t lastMode = currentMode;
       do
       {
@@ -172,12 +184,12 @@ void buttonTick()
       if (currentMode == lastMode) // если ни один режим не добавлен в избранное, всё равно куда-нибудь переключимся
         if (--temp >= MODE_AMOUNT) temp = MODE_AMOUNT - 1;
         currentMode = eff_num_correct[temp];
-	}
-	else 
-	  if (--temp >= MODE_AMOUNT) temp = MODE_AMOUNT - 1;
+    }
+    else 
+      if (--temp >= MODE_AMOUNT) temp = MODE_AMOUNT - 1;
     currentMode = eff_num_correct[temp];
-	jsonWrite(configSetup, "eff_sel", temp);
-	jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+    jsonWrite(configSetup, "eff_sel", temp);
+    jsonWrite(configSetup, "br", modes[currentMode].Brightness);
     jsonWrite(configSetup, "sp", modes[currentMode].Speed);
     jsonWrite(configSetup, "sc", modes[currentMode].Scale);
     SetBrightness(modes[currentMode].Brightness);
@@ -208,34 +220,36 @@ void buttonTick()
     if (otaManager.RequestOtaUpdate())
     {
       ONflag = true;
-	  jsonWrite(configSetup, "Power", ONflag);
+      jsonWrite(configSetup, "Power", ONflag);
       currentMode = EFF_MATRIX;                             // принудительное включение режима "Матрица" для индикации перехода в режим обновления по воздуху
-	  jsonWrite(configSetup, "eff_sel", currentMode);
-	  jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+      jsonWrite(configSetup, "eff_sel", currentMode);
+      jsonWrite(configSetup, "br", modes[currentMode].Brightness);
       jsonWrite(configSetup, "sp", modes[currentMode].Speed);
       jsonWrite(configSetup, "sc", modes[currentMode].Scale);
       changePower();
     }
     else
     #endif
-	
-	#ifdef BUTTON_CAN_SET_SLEEP_TIMER
-	//if (!ota)
-	{
-    // мигать об успехе операции лучше до вызова changePower(), иначе сперва мелькнут кадры текущего эффекта
-    showWarning(CRGB::Blue, 1000, 250U);                    // мигание синим цветом 1 секунду
-    if (!ONflag) EepromManager::EepromGet(modes);
-    ONflag = true;
-    changePower();
-	jsonWrite(configSetup, "Power", ONflag);
-    jsonWrite(configSetup, "tmr", 1);
-    #ifdef USE_BLYNK
-    updateRemoteBlynkParams();
-    #endif
-    TimerManager::TimeToFire = millis() + BUTTON_SET_SLEEP_TIMER1 * 60UL * 1000UL;
-    TimerManager::TimerRunning = true;
-	}
-    #endif //BUTTON_CAN_SET_SLEEP_TIMER	
+    
+    #ifdef BUTTON_CAN_SET_SLEEP_TIMER
+    //if (!ota)
+    {
+      if (!dawnFlag) {
+        // мигать об успехе операции лучше до вызова changePower(), иначе сперва мелькнут кадры текущего эффекта
+        showWarning(CRGB::Blue, 1000, 250U);                    // мигание синим цветом 1 секунду
+        if (!ONflag) EepromManager::EepromGet(modes);
+        ONflag = true;
+        changePower();
+        jsonWrite(configSetup, "Power", ONflag);
+        jsonWrite(configSetup, "tmr", 1);
+        #ifdef USE_BLYNK
+        updateRemoteBlynkParams();
+        #endif
+        TimerManager::TimeToFire = millis() + BUTTON_SET_SLEEP_TIMER1 * 60UL * 1000UL;
+        TimerManager::TimerRunning = true;
+      }
+    }
+    #endif //BUTTON_CAN_SET_SLEEP_TIMER 
     ;
   }
 
@@ -250,14 +264,21 @@ void buttonTick()
       #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором, матрица должна быть включена на время вывода текста
       digitalWrite(MOSFET_PIN, MOSFET_LEVEL);
       #endif
-      while(!fillString(WiFi.localIP().toString().c_str(), CRGB::White, false)) { delay(1); ESP.wdtFeed(); }
+      while(!fillString(WiFi.localIP().toString().c_str(), CRGB::White, false)) {
+          delay(1);
+          #ifdef ESP32_USED
+           esp_task_wdt_reset();
+          #else
+           ESP.wdtFeed();
+          #endif
+          }
       if (ColorTextFon  & (!ONflag || (currentMode == EFF_COLOR && modes[currentMode].Scale < 3))){
         FastLED.clear();
         delay(1);
         FastLED.show();
       }
       #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором, соответственно состоянию вкл/выкл матрицы или будильника
-      digitalWrite(MOSFET_PIN, ONflag || (dawnFlag && !manualOff) ? MOSFET_LEVEL : !MOSFET_LEVEL);
+      digitalWrite(MOSFET_PIN, ONflag || (dawnFlag == 1 && !manualOff) ? MOSFET_LEVEL : !MOSFET_LEVEL);
       #endif
 
       loadingFlag = true;
@@ -279,12 +300,14 @@ void buttonTick()
       if (espMode) wifiManager.resetSettings();                             // сброс сохранённых SSID и пароля (сброс настроек подключения к роутеру)
     #endif
     espMode = (espMode == 0U) ? 1U : 0U;
-	jsonWrite(configSetup, "ESP_mode", (int)espMode);
-	saveConfig();  
+    jsonWrite(configSetup, "ESP_mode", (int)espMode);
+    saveConfig();  
 
     #ifdef GENERAL_DEBUG
-    LOG.printf_P(PSTR("Рабочий режим лампы изменён и сохранён в энергонезависимую память\nНовый рабочий режим: ESP_MODE = %d, %s\nРестарт...\n"),
-      espMode, espMode == 0U ? F("WiFi точка доступа") : F("WiFi клиент (подключение к роутеру)"));
+    LOG.print(F("Рабочий режим лампы изменён и сохранён в энергонезависимую память\nНовый рабочий режим: ESP_MODE ="));
+    LOG.print(espMode);
+    LOG.print(espMode == 0U ? F("WiFi точка доступа") : F("WiFi клиент (подключение к роутеру)"));
+    LOG.print("\nРестарт...\n");
     delay(1000);
     #endif
 
@@ -292,10 +315,10 @@ void buttonTick()
     ESP.restart();
   }
 
-  #ifdef MP3_TX_PIN
+  #ifdef MP3_PLAYER_USE
   
   // Восьмикратное нажатие
-  if (clickCount == 8U)  {                // Вкл / Откл звука
+  if (clickCount == 8U)  {                                  // Вкл / Откл звука
     if (mp3_player_connect == 4) {
       if (eff_sound_on) {
         eff_sound_on = 0;
@@ -318,12 +341,12 @@ void buttonTick()
         LOG.println (F("mp3 player не подключен"));
         #endif
     }
-    jsonWrite(configSetup, "on_sound", constrain (eff_sound_on,0,1));
+    jsonWrite(configSetup, "on_sound", eff_sound_on > 0 ? 1 : 0);
     #ifdef USE_MULTIPLE_LAMPS_CONTROL
     repeat_multiple_lamp_control = true;
     #endif  //USE_MULTIPLE_LAMPS_CONTROL
   }
-  #endif  //MP3_TX_PIN
+  #endif  // MP3_PLAYER_USE
 
   // кнопка только начала удерживаться
   if (touch.isHolded()) // пускай для выключенной лампы удержание кнопки включает белую лампу
@@ -334,7 +357,7 @@ void buttonTick()
 
 
   // кнопка нажата и удерживается
-if (touch.isStep())
+if (touch.isStep()){
   if (ONflag && !Button_Holding)
   {
 
@@ -353,7 +376,7 @@ if (touch.isStep())
             ? modes[currentMode].Brightness + delta
             : modes[currentMode].Brightness - delta,
           1, 255);
-		jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+        jsonWrite(configSetup, "br", modes[currentMode].Brightness);
         SetBrightness(modes[currentMode].Brightness);
         #ifdef TM1637_USE
         DisplayFlag = 3;
@@ -372,7 +395,7 @@ if (touch.isStep())
       case 1U:                                              // удержание после одного клика - изменение скорости
       {
         modes[currentMode].Speed = constrain(brightDirection ? modes[currentMode].Speed + 1 : modes[currentMode].Speed - 1, 1, 255);
-		jsonWrite(configSetup, "sp", modes[currentMode].Speed);
+        jsonWrite(configSetup, "sp", modes[currentMode].Speed);
         loadingFlag = true; // без перезапуска эффекта ничего и не увидишь
 
         #ifdef GENERAL_DEBUG
@@ -394,7 +417,7 @@ if (touch.isStep())
       case 2U:                                              // удержание после двух кликов - изменение масштаба
       {
         modes[currentMode].Scale = constrain(brightDirection ? modes[currentMode].Scale + 1 : modes[currentMode].Scale - 1, 1, 100);
-		jsonWrite(configSetup, "sc", modes[currentMode].Scale);
+        jsonWrite(configSetup, "sc", modes[currentMode].Scale);
         loadingFlag = true; // без перезапуска эффекта ничего и не увидишь
 
         #ifdef GENERAL_DEBUG
@@ -412,120 +435,211 @@ if (touch.isStep())
         #endif  //USE_MULTIPLE_LAMPS_CONTROL
         break;
       }
-	  
-	    #ifdef BUTTON_CAN_SET_SLEEP_TIMER
-	  case 3U:                                                  // Таймер сна 10 мин.
-	  {
-		Button_Holding = true;
-		// мигать об успехе операции лучше до вызова changePower(), иначе сперва мелькнут кадры текущего эффекта
-		showWarning(CRGB::Blue, 1500U, 250U);                    // мигание синим цветом 1 секунду
-		ONflag = true;
-		changePower();
-		jsonWrite(configSetup, "Power", ONflag);
-        jsonWrite(configSetup, "tmr", 1);
-       	#ifdef USE_BLYNK
-        updateRemoteBlynkParams();
-        #endif
-        TimerManager::TimeToFire = millis() + BUTTON_SET_SLEEP_TIMER2 * 60UL * 1000UL;
-        TimerManager::TimerRunning = true;
+      
+        #ifdef BUTTON_CAN_SET_SLEEP_TIMER
+      case 3U:                                               // Таймер сна 10 мин.
+      {
+        if(!dawnFlag){
+          Button_Holding = true;
+          // мигать об успехе операции лучше до вызова changePower(), иначе сперва мелькнут кадры текущего эффекта
+          showWarning(CRGB::Blue, 1500U, 250U);                    // мигание синим цветом 1 секунду
+          ONflag = true;
+          changePower();
+          jsonWrite(configSetup, "Power", ONflag);
+          jsonWrite(configSetup, "tmr", 1);
+          #ifdef USE_BLYNK
+          updateRemoteBlynkParams();
+          #endif
+          TimerManager::TimeToFire = millis() + BUTTON_SET_SLEEP_TIMER2 * 60UL * 1000UL;
+          TimerManager::TimerRunning = true;
+          break;
+        }
         break;
       }
         #endif //BUTTON_CAN_SET_SLEEP_TIMER
-
+        
       case 14U:                                             // Сброс основных настроек, хранящихся в файле config.json
       {
           showWarning(CRGB::Red, 500, 250U);
-          ESP.wdtFeed();
+          #ifdef ESP32_USED
+           esp_task_wdt_reset();
+          #else
+           ESP.wdtFeed();
+          #endif
           setModeSettings();
           updateSets();    
           if(FileCopy (F("/default/config.json"), F("/config.json"))){
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 2500, 250U);
               ESP.restart();
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 2500, 250U);
           }
           break;
       }
       
-      case 19U: //                                          Сброс всех настроек в "заводские"
-	  {
+      case 19U:                                            // Сброс всех настроек в "заводские"
+      {
           showWarning(CRGB::Red, 500, 250U);
-          ESP.wdtFeed();
+          #ifdef ESP32_USED
+           esp_task_wdt_reset();
+          #else
+           ESP.wdtFeed();
+          #endif
           setModeSettings();
           updateSets();    
           if(FileCopy (F("/default/config.json"), F("/config.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_cycle.json"), F("/config_cycle.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_sound.json"), F("/config_sound.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_alarm.json"), F("/config_alarm.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_hardware.json"), F("/config_hardware.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_multilamp.json"), F("/config_multilamp.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_ip.json"), F("/config_ip.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_mqtt.json"), F("/config_mqtt.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/index.json.gz"), F("/index.json.gz"))) {
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
              ESP.wdtFeed();
+            #endif
              showWarning(CRGB::Green, 500, 250U);
           }
           else {
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
              ESP.wdtFeed();
+            #endif
              showWarning(CRGB::Red, 500, 250U);
           }
           ESP.restart();
@@ -534,7 +648,7 @@ if (touch.isStep())
 
       default:
         break;
-    }		
+    }       
   }
   else
   {
@@ -545,9 +659,9 @@ if (touch.isStep())
     switch (but )
     {
       case 0U:                                              // просто удержание (до удержания кнопки кликов не было) - белый свет
-	  {
-		Button_Holding = true;
-		currentMode = EFF_WHITE_COLOR;
+      {
+        Button_Holding = true;
+        currentMode = EFF_WHITE_COLOR;
     //String Name = "correct." + jsonRead (configSetup, "lang") + ".json";
     //String Correct = readFile(Name, 2048);
     for ( uint8_t n=0; n< MODE_AMOUNT; n++)
@@ -558,126 +672,210 @@ if (touch.isStep())
             break;
         }
     }
-		jsonWrite(configSetup, "br", modes[currentMode].Brightness);
-		jsonWrite(configSetup, "sp", modes[currentMode].Speed);
-		jsonWrite(configSetup, "sc", modes[currentMode].Scale);
-		ONflag = true;
-		jsonWrite(configSetup, "Power", ONflag);
-		changePower();
-		#ifdef USE_BLYNK
-		updateRemoteBlynkParams();
-		#endif
-		break;
-	  }
-	    #ifdef BUTTON_CAN_SET_SLEEP_TIMER	  
-	  case 3U:
-	  {
-		Button_Holding = true;
-		// мигать об успехе операции лучше до вызова changePower(), иначе сперва мелькнут кадры текущего эффекта
-		showWarning(CRGB::Blue, 1500U, 250U);                    // мигание синим цветом 1 секунду
-        EepromManager::EepromGet(modes);
-		ONflag = true;
-		changePower();
-		jsonWrite(configSetup, "Power", ONflag);
-    jsonWrite(configSetup, "tmr", 1);
-		#ifdef USE_BLYNK
-		updateRemoteBlynkParams();
-		#endif
-		TimerManager::TimeToFire = millis() + BUTTON_SET_SLEEP_TIMER2 * 60UL * 1000UL;
-		TimerManager::TimerRunning = true;
-		break;		
-	  }
-		#endif //BUTTON_CAN_SET_SLEEP_TIMER
+        jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+        jsonWrite(configSetup, "sp", modes[currentMode].Speed);
+        jsonWrite(configSetup, "sc", modes[currentMode].Scale);
+        ONflag = true;
+        jsonWrite(configSetup, "Power", ONflag);
+        changePower();
+        #ifdef USE_BLYNK
+        updateRemoteBlynkParams();
+        #endif
+        break;
+      }
+        #ifdef BUTTON_CAN_SET_SLEEP_TIMER     
+      case 3U:
+      {
+        if(!dawnFlag){
+          Button_Holding = true;
+          // мигать об успехе операции лучше до вызова changePower(), иначе сперва мелькнут кадры текущего эффекта
+          showWarning(CRGB::Blue, 1500U, 250U);                    // мигание синим цветом 1 секунду
+          EepromManager::EepromGet(modes);
+          ONflag = true;
+          changePower();
+          jsonWrite(configSetup, "Power", ONflag);
+          jsonWrite(configSetup, "tmr", 1);
+          #ifdef USE_BLYNK
+          updateRemoteBlynkParams();
+          #endif
+          TimerManager::TimeToFire = millis() + BUTTON_SET_SLEEP_TIMER2 * 60UL * 1000UL;
+          TimerManager::TimerRunning = true;
+          break;
+        }
+        break;
+      }
+        #endif //BUTTON_CAN_SET_SLEEP_TIMER
         
       case 14U:
-	  {
+      {
           showWarning(CRGB::Red, 500, 250U);
-          ESP.wdtFeed();
+          #ifdef ESP32_USED
+           esp_task_wdt_reset();
+          #else
+           ESP.wdtFeed();
+          #endif
           if(FileCopy (F("/default/config.json"), F("/config.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 2500, 250U);
               ESP.restart();
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 2500, 250U);
           }
           break;
       }
       case 19U:
-	  {
+      {
           showWarning(CRGB::Red, 500, 250U);
-          ESP.wdtFeed();
+          #ifdef ESP32_USED
+           esp_task_wdt_reset();
+          #else
+           ESP.wdtFeed();
+          #endif
           if(FileCopy (F("/default/config.json"), F("/config.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_cycle.json"), F("/config_cycle.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_sound.json"), F("/config_sound.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_alarm.json"), F("/config_alarm.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_hardware.json"), F("/config_hardware.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_multilamp.json"), F("/config_multilamp.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
-              showWarning(CRGB::Red, 500, 250U);
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
+            showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_ip.json"), F("/config_ip.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Red, 500, 250U);
           }
           if(FileCopy (F("/default/config_mqtt.json"), F("/config_mqtt.json"))) {
-              ESP.wdtFeed();
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
               showWarning(CRGB::Green, 500, 250U);
           }
           else {
-              ESP.wdtFeed();
-              showWarning(CRGB::Red, 500, 250U);
+            #ifdef ESP32_USED
+             esp_task_wdt_reset();
+            #else
+             ESP.wdtFeed();
+            #endif
+            showWarning(CRGB::Red, 500, 250U);
           }
           ESP.restart();
           break;
       }
       
-	}
+    }
    }
+  }
   }
 
   // кнопка отпущена после удерживания

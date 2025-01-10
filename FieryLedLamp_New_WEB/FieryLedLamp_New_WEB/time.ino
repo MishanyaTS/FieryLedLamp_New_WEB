@@ -31,50 +31,12 @@ static uint8_t dawnCounter = 0;                                           // с�
 
 void timeTick()
 {
-    if (save_file_changes && millis() - timeout_save_file_changes >= SAVE_FILE_DELAY_TIMEOUT) {
-        //writeFile("config.json", configSetup );
-        //save_file_changes = 0;
-        switch (save_file_changes) {
-        case 1:
-            writeFile(F("config.json"), configSetup );
-            save_file_changes = 0;
-            break;
-        case 2:
-            save_alarms();
-            save_file_changes = 0;
-            break;
-        case 3:
-            save_alarms();
-            writeFile(F("config.json"), configSetup );
-            save_file_changes = 0;
-            break;
-        case 4:
-            cycle_get();
-            save_file_changes = 0;
-            break;
-        case 5:
-            cycle_get();
-            writeFile(F("config.json"), configSetup );
-            save_file_changes = 0;
-            break;
-        case 6:
-            cycle_get();
-            save_alarms();
-            save_file_changes = 0;
-            break;
-        case 7:
-            save_alarms();
-            cycle_get();
-            writeFile(F("config.json"), configSetup );
-            save_file_changes = 0;
-            break;
-        }
-    }
-  {
-    if (timeTimer.isReady())
+Save_File_Changes();
+  //{
+if (timeTimer.isReady())
     {
       #ifdef USE_NTP
-if (espMode == 1U){      
+  if (espMode == 1U) {      
       if (!timeSynched)
       {
         if ((millis() - lastResolveTryMoment >= RESOLVE_INTERVAL || lastResolveTryMoment == 0) && connect)
@@ -91,7 +53,7 @@ if (espMode == 1U){
 #ifdef PHONE_N_MANUAL_TIME_PRIORITY
 if (stillUseNTP)
 #endif      
-// если прошло более NTP_INTERVAL, значит, можно попытаться получить время с сервера точного времени один разокк
+// если прошло более NTP_INTERVAL, значит, можно попытаться получить время с сервера точного времени один разок
       if (timeClient.update()){
          #ifdef WARNING_IF_NO_TIME
            noTimeClear();
@@ -115,8 +77,8 @@ if (stillUseNTP)
 #endif
         return;
       }
+
       time_t currentLocalTime = getCurrentLocalTime();
-      
       uint8_t thisDay = dayOfWeek(currentLocalTime);
       if (thisDay == 1) thisDay = 8;                                      // в библиотеке Time воскресенье - это 1; приводим к диапазону [0..6], где воскресенье - это 6
       thisDay -= 2;
@@ -129,14 +91,14 @@ if (stillUseNTP)
           #endif
           ) {
         hours = hour(currentLocalTime);                   // получаем значение часов
-        last_minute = minute(currentLocalTime);                  // получаем значение минут
+        last_minute = minute(currentLocalTime);           // получаем значение минут
         #ifdef TM1637_USE
         clockTicker_blink();
         #endif
         if (last_minute == 1) getBrightnessForPrintTime();
         
-    #ifdef MP3_TX_PIN
-    if (alarm_advert_sound_on && mp3_player_connect == 4 && dawnFlag && dawnPosition >= 245) {
+    #ifdef MP3_PLAYER_USE
+      if (alarm_advert_sound_on && mp3_player_connect == 4 && dawnFlag == 1 && dawnPosition >= 245) {
         //Serial.println ("Alarm");
         first_entry = 1;
         advert_hour = true;
@@ -144,12 +106,16 @@ if (stillUseNTP)
         play_time_ADVERT();
         while (advert_flag) {
            play_time_ADVERT();
-           ESP.wdtFeed();
+           #ifdef ESP32_USED
+            esp_task_wdt_reset();
+           #else
+            ESP.wdtFeed();
+           #endif
         }
-    }
-    #endif  //MP3_TX_PIN
       }
-      
+    #endif  // MP3_PLAYER_USE
+      }
+
       // проверка рассвета
       if (alarms[thisDay].State &&                                                                                          // день будильника
           thisTime >= (uint16_t)constrain(alarms[thisDay].Time - pgm_read_byte(&dawnOffsets[dawnMode]), 0, (24 * 60)) &&    // позже начала
@@ -159,7 +125,7 @@ if (stillUseNTP)
         {
           // величина рассвета 0-255
           dawnPosition = (uint16_t) (255 * ((float)(thisFullTime - (alarms[thisDay].Time - pgm_read_byte(&dawnOffsets[dawnMode])) * 60) / (pgm_read_byte(&dawnOffsets[dawnMode]) * 60)));
-          dawnPosition = constrain(dawnPosition, 0, 255);
+          dawnPosition = dawnPosition < 255U ? dawnPosition : 255U;  //constrain(dawnPosition, 0, 255);
           for (uint8_t j = 5U; j > 0U; j--)
             if (dawnCounter >= j)
               dawnColor[j] = dawnColor[j - 1U];
@@ -176,7 +142,7 @@ if (stillUseNTP)
           FastLED.setBrightness(255);
           delay(1);
           FastLED.show();
-          dawnFlag = true;
+          dawnFlag = 1;
 #ifdef TM1637_USE
           //blink_clock = true;
 #endif
@@ -199,15 +165,15 @@ if (stillUseNTP)
       else
       {
         // не время будильника (ещё не начался или закончился по времени)
-        if (dawnFlag)
+        if (dawnFlag == 1)
         {
-          dawnFlag = false;
+          dawnFlag = 2;
           #ifdef TM1637_USE
           clockTicker_blink();
           #endif
-          FastLED.clear();
-          delay(2);
-          FastLED.show();
+          //FastLED.clear();
+          //delay(2);
+          //FastLED.show();
           changePower();                                                  // выключение матрицы или установка яркости текущего эффекта в засисимости от того, была ли включена лампа до срабатывания будильника
         }
 #ifdef TM1637_USE
@@ -230,7 +196,7 @@ if (stillUseNTP)
       }
     jsonWrite(configSetup, "time", Get_Time(currentLocalTime));
     }
-  }
+  //}
 }
 
 #ifdef USE_NTP
@@ -240,8 +206,11 @@ void resolveNtpServerAddress(bool &ntpServerAddressResolved)              // ф�
   {
     return;
   }
-
-  int err = WiFi.hostByName(NTP_ADDRESS, ntpServerIp, RESOLVE_TIMEOUT);
+  #ifdef ESP32_USED
+    int err = WiFi.hostByName(NTP_ADDRESS, ntpServerIp);
+  #else
+    int err = WiFi.hostByName(NTP_ADDRESS, ntpServerIp, RESOLVE_TIMEOUT);
+  #endif
   if (err!=1 || ntpServerIp[0] == 0 || ntpServerIp == IPAddress(255U, 255U, 255U, 255U)) 
   {
     #ifdef GENERAL_DEBUG
@@ -324,12 +293,27 @@ time_t getCurrentLocalTime()
 }
 
 // Получение текущего времени
+/*
 String Get_Time(time_t LocalTime) {
  String Time = ""; // Строка для результатов времени
  Time += ctime(&LocalTime); // Преобразуем время в строку формата Thu Jan 19 00:55:35 2017
  int i = Time.indexOf(":"); //Ишем позицию первого символа :
  Time = Time.substring(i - 2, i + 6); // Выделяем из строки 2 символа перед символом : и 6 символов после
  return Time; // Возврашаем полученное время
+}
+*/
+
+//+++++ Функция ctime() отсутствует в библиотеке time.h для ESP32 Поэтому замена от V.Matchenko +++++
+String Get_Time(time_t LocalTime) {
+  // Преобразование секунд во время (часы, минуты, секунды)
+  int hours = (LocalTime % 86400L) / 3600;
+  int minutes = (LocalTime % 3600) / 60;
+  int seconds = LocalTime % 60;
+
+  // Форматирование времени в строку "HH:MM:SS"
+  char buffer[9]; // Достаточно места для строки "HH:MM:SS"
+  snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d", hours, minutes, seconds);
+  return String(buffer);
 }
 
 #ifdef TM1637_USE
@@ -338,7 +322,7 @@ void clockTicker_blink()
   if (timeSynched && !DisplayFlag) {  
   
   //tm1637_brightness ();
-  if (dawnFlag)  //если рассвет - мигаем  часами
+  if (dawnFlag == 1)  //если рассвет - мигаем  часами
   {
     display.displayClock(hours, last_minute);                         // выводим время функцией часов
     if (millis() - tmr_blink > 100) {
@@ -391,3 +375,45 @@ void tm1637_brightness ()   {  // установка яркости в зави�
  #endif
 
 #endif
+
+void Save_File_Changes() {
+    if (save_file_changes && millis() - timeout_save_file_changes >= SAVE_FILE_DELAY_TIMEOUT) {
+        //writeFile("config.json", configSetup );
+        //save_file_changes = 0;
+        switch (save_file_changes) {
+        case 1:
+            writeFile(F("config.json"), configSetup );
+            save_file_changes = 0;
+            break;
+        case 2:
+            save_alarms();
+            save_file_changes = 0;
+            break;
+        case 3:
+            save_alarms();
+            writeFile(F("config.json"), configSetup );
+            save_file_changes = 0;
+            break;
+        case 4:
+            cycle_get();
+            save_file_changes = 0;
+            break;
+        case 5:
+            cycle_get();
+            writeFile(F("config.json"), configSetup );
+            save_file_changes = 0;
+            break;
+        case 6:
+            cycle_get();
+            save_alarms();
+            save_file_changes = 0;
+            break;
+        case 7:
+            save_alarms();
+            cycle_get();
+            writeFile(F("config.json"), configSetup );
+            save_file_changes = 0;
+            break;
+        }
+    }
+}
