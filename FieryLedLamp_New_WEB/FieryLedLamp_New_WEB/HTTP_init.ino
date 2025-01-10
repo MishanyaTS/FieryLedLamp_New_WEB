@@ -25,7 +25,7 @@ void HTTP_init(void) {
     }
   });
   
-  httpUpdater.setup(&HTTP);    // Добавляем функцию Update для перезаписи прошивки по WiFi при 4М(1M SPIFFS) и выше
+  httpUpdater.setup(&HTTP);    // Добавляем функцию Update для перезаписи прошивки по WiFi при 4М(1M LittleFS) и выше
   HTTP.begin();                // Запускаем HTTP сервер
   
 }

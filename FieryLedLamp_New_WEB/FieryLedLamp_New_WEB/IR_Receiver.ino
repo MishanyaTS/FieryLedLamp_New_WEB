@@ -24,8 +24,8 @@ void IR_Receive_Handle ()   {       // Обработка принятого с�
     if (Enter_Digit_1 && millis() - IR_Dgit_Enter_Timer > IR_DIGIT_ENTER_TIMER){  // Если одна цифра нажата и время ожидания нажатия второй цифры вышло
         Enter_Digit_1 = 0;
         currentMode = eff_num_correct[Enter_Number];
-	    jsonWrite(configSetup, "eff_sel", Enter_Number);
-	    jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+        jsonWrite(configSetup, "eff_sel", Enter_Number);
+        jsonWrite(configSetup, "br", modes[currentMode].Brightness);
         jsonWrite(configSetup, "sp", modes[currentMode].Speed);
         jsonWrite(configSetup, "sc", modes[currentMode].Scale);
         SetBrightness(modes[currentMode].Brightness);
@@ -372,8 +372,8 @@ void IR_Receive_Button_Handle()   {     //Обработка принятых к
 }
 
 void IR_Power()   {
-    if (dawnFlag) {
-        #ifdef MP3_TX_PIN
+    if (dawnFlag == 1) {
+        #ifdef MP3_PLAYER_USE
         if (alarm_sound_flag) {
            //myDFPlayer.pause();
            send_command(0x0E,0,0,0); //Пауза
@@ -381,10 +381,10 @@ void IR_Power()   {
            alarm_sound_flag = false;
         }
         else
-        #endif  //MP3_TX_PIN
+        #endif  // MP3_PLAYER_USE
         {
             manualOff = true;
-            dawnFlag = false;
+            dawnFlag = 2;
             #ifdef TM1637_USE
             clockTicker_blink();
             #endif
@@ -396,13 +396,13 @@ void IR_Power()   {
     else
     {
         ONflag = !ONflag;
-	    jsonWrite(configSetup, "Power", ONflag);
+        jsonWrite(configSetup, "Power", ONflag);
         if (!ONflag)  {
             //eepromTimeout = millis() - EEPROM_WRITE_DELAY;
             timeout_save_file_changes = millis() - SAVE_FILE_DELAY_TIMEOUT;
             if (!FavoritesManager::FavoritesRunning) EepromManager::EepromPut(modes);
             save_file_changes = 7;
-            timeTick();
+            Save_File_Changes();
         }
         else {
             EepromManager::EepromGet(modes);
@@ -433,7 +433,7 @@ void IR_Power()   {
 }
 
 void Mute()   {                // Вкл / Откл звука
-    #ifdef MP3_TX_PIN
+    #ifdef MP3_PLAYER_USE
     if (mp3_player_connect == 4) {
       if (eff_sound_on) {
         eff_sound_on = 0;
@@ -454,13 +454,13 @@ void Mute()   {                // Вкл / Откл звука
         LOG.println (F("mp3 player не подключен"));
         #endif
     }
-    jsonWrite(configSetup, "on_sound", constrain (eff_sound_on,0,1));
+    jsonWrite(configSetup, "on_sound", eff_sound_on > 0 ? 1 : 0);
     timeout_save_file_changes = millis();
     bitSet (save_file_changes, 0);
     #ifdef USE_MULTIPLE_LAMPS_CONTROL
     repeat_multiple_lamp_control = true;
     #endif  //USE_MULTIPLE_LAMPS_CONTROL
-  #endif  //MP3_TX_PIN
+  #endif  // MP3_PLAYER_USE
 }
 
 void Prev_Next_eff(bool direction)   {
@@ -469,7 +469,7 @@ void Prev_Next_eff(bool direction)   {
       uint8_t temp = jsonReadtoInt(configSetup, "eff_sel");
       if (direction) {
           if (Favorit_only)
-	      {
+          {
             uint8_t lastMode = currentMode;
             do 
             {
@@ -479,13 +479,13 @@ void Prev_Next_eff(bool direction)   {
             if (currentMode == lastMode) // если ни один режим не добавлен в избранное, всё равно куда-нибудь переключимся
               if (++temp >= MODE_AMOUNT) temp = 0;
               currentMode = eff_num_correct[temp];
-	      }
+          }
           else
             if (++temp >= MODE_AMOUNT) temp = 0;
       }
       else {
-	      if (Favorit_only) 
-	      {
+          if (Favorit_only) 
+          {
             uint8_t lastMode = currentMode;
             do
             {
@@ -495,13 +495,13 @@ void Prev_Next_eff(bool direction)   {
             if (currentMode == lastMode) // если ни один режим не добавлен в избранное, всё равно куда-нибудь переключимся
               if (--temp >= MODE_AMOUNT) temp = MODE_AMOUNT - 1;
               currentMode = eff_num_correct[temp];
-	      }
-	      else 
-	        if (--temp >= MODE_AMOUNT) temp = MODE_AMOUNT - 1;
+          }
+          else 
+            if (--temp >= MODE_AMOUNT) temp = MODE_AMOUNT - 1;
       }
     currentMode = eff_num_correct[temp];
-	jsonWrite(configSetup, "eff_sel", temp);
-	jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+    jsonWrite(configSetup, "eff_sel", temp);
+    jsonWrite(configSetup, "br", modes[currentMode].Brightness);
     jsonWrite(configSetup, "sp", modes[currentMode].Speed);
     jsonWrite(configSetup, "sc", modes[currentMode].Scale);
     SetBrightness(modes[currentMode].Brightness);
@@ -532,9 +532,9 @@ void Prev_Next_eff(bool direction)   {
 void Cycle_on_off()   {
     if (ONflag)   {
         uint8_t tmp;
-        jsonReadtoInt(configSetup, "cycle_on") == 0? tmp = 1 : tmp = 0;
-	    jsonWrite(configSetup, "cycle_on", tmp);
-	    FavoritesManager::FavoritesRunning = tmp;
+        jsonReadtoInt(configSetup, "cycle_on") == 0 ? tmp = 1 : tmp = 0;
+        jsonWrite(configSetup, "cycle_on", tmp);
+        FavoritesManager::FavoritesRunning = tmp;
         if (tmp){
             showWarning(CRGB::Blue, 500, 250U);        // мигание синим цветом 0.5 секунды
             EepromManager::EepromPut(modes);
@@ -556,7 +556,7 @@ void Cycle_on_off()   {
 void Bright_Up_Down(bool direction)   {
     uint8_t delta = IR_Data_Ready == 1 ? 1U : 4U;
     modes[currentMode].Brightness = constrain(direction ? modes[currentMode].Brightness + delta : modes[currentMode].Brightness - delta, 1, 255);
-	jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+    jsonWrite(configSetup, "br", modes[currentMode].Brightness);
     SetBrightness(modes[currentMode].Brightness);
     #ifdef TM1637_USE
     DisplayFlag = 3;
@@ -583,7 +583,7 @@ void Bright_Up_Down(bool direction)   {
 void Speed_Up_Down(bool direction)   {
     uint8_t delta = IR_Data_Ready == 1 ? 1U : 4U;
     modes[currentMode].Speed = constrain(direction ? modes[currentMode].Speed + delta : modes[currentMode].Speed - delta, 1, 255);
-	jsonWrite(configSetup, "sp", modes[currentMode].Speed);
+    jsonWrite(configSetup, "sp", modes[currentMode].Speed);
     loadingFlag = true; // без перезапуска эффекта ничего и не увидишь
     #ifdef TM1637_USE
     DisplayFlag = 3;
@@ -610,7 +610,7 @@ void Speed_Up_Down(bool direction)   {
 void Scale_Up_Down(bool direction)   {
     uint8_t delta = IR_Data_Ready == 1 ? 1U : 2U;
     modes[currentMode].Scale = constrain(direction ? modes[currentMode].Scale + delta : modes[currentMode].Scale - delta, 1, 100);
-	jsonWrite(configSetup, "sc", modes[currentMode].Scale);
+    jsonWrite(configSetup, "sc", modes[currentMode].Scale);
     loadingFlag = true; // без перезапуска эффекта ничего и не увидишь
     #ifdef TM1637_USE
     DisplayFlag = 3;
@@ -636,7 +636,7 @@ void Scale_Up_Down(bool direction)   {
 }
 
 void Volum_Up_Down (bool direction)   {
-    #ifdef MP3_TX_PIN
+    #ifdef MP3_PLAYER_USE
     eff_volume = constrain(direction ? eff_volume + 1 : eff_volume - 1, 1, 30);
     jsonWrite(configSetup, "vol", eff_volume);
     if (!dawnflag_sound) send_command(6,FEEDBACK,0,eff_volume); //Громкость
@@ -647,7 +647,7 @@ void Volum_Up_Down (bool direction)   {
     #ifdef USE_MULTIPLE_LAMPS_CONTROL
     repeat_multiple_lamp_control = true;
     #endif  //USE_MULTIPLE_LAMPS_CONTROL
-    #endif  //MP3_TX_PIN
+    #endif  // MP3_PLAYER_USE
 }
 
 void Print_IP()   {
@@ -657,7 +657,14 @@ void Print_IP()   {
     if (espMode == 1U)
     {
       loadingFlag = true;
-      while(!fillString(WiFi.localIP().toString().c_str(), CRGB::White, false)) { delay(1); ESP.wdtFeed();}
+      while(!fillString(WiFi.localIP().toString().c_str(), CRGB::White, false)) {
+          delay(1);
+          #ifdef ESP32_USED
+           esp_task_wdt_reset();
+          #else
+           ESP.wdtFeed();
+          #endif
+          }
       if (ColorTextFon  & (!ONflag || (currentMode == EFF_COLOR && modes[currentMode].Scale < 3))){
         FastLED.clear();
         delay(1);
@@ -669,7 +676,14 @@ void Print_IP()   {
     {
       loadingFlag = true;
       String str = "Access Point 192.168.4.1";
-      while(!fillString(str.c_str(), CRGB::White, false)) { delay(1); ESP.wdtFeed();}
+      while(!fillString(str.c_str(), CRGB::White, false)) {
+          delay(1);
+          #ifdef ESP32_USED
+           esp_task_wdt_reset();
+          #else
+           ESP.wdtFeed();
+          #endif
+          }
       if (ColorTextFon  & (!ONflag || (currentMode == EFF_COLOR && modes[currentMode].Scale < 3))){
         FastLED.clear();
         delay(1);
@@ -678,12 +692,12 @@ void Print_IP()   {
       loadingFlag = true;
     }
     #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором, соответственно состоянию вкл/выкл матрицы или будильника
-      digitalWrite(MOSFET_PIN, ONflag || (dawnFlag && !manualOff) ? MOSFET_LEVEL : !MOSFET_LEVEL);
+      digitalWrite(MOSFET_PIN, ONflag || (dawnFlag == 1 && !manualOff) ? MOSFET_LEVEL : !MOSFET_LEVEL);
     #endif
 }
 
 void Folder_Next_Prev(bool direction)    {
-    #ifdef MP3_TX_PIN
+    #ifdef MP3_PLAYER_USE
     if (true) { //(!pause_on && !mp3_stop && eff_sound_on) {
     CurrentFolder = constrain(direction ? CurrentFolder + 1 : CurrentFolder - 1, 0, 99);
     jsonWrite(configSetup, "fold_sel", CurrentFolder);
@@ -700,10 +714,10 @@ void Folder_Next_Prev(bool direction)    {
     DisplayFlag = 0;
     Display_Timer();
     #endif
-     #ifdef USE_MULTIPLE_LAMPS_CONTROL
+    #ifdef USE_MULTIPLE_LAMPS_CONTROL
     repeat_multiple_lamp_control = true;
     #endif  //USE_MULTIPLE_LAMPS_CONTROL
-    #endif  //MP3_TX_PIN
+    #endif  // MP3_PLAYER_USE
 }
 
 void Current_Eff_Rnd_Def(bool direction)   {
@@ -726,7 +740,7 @@ void Current_Eff_Rnd_Def(bool direction)   {
 }
 
 void IR_Equalizer()   {     // Устанавливаем эквалайзер
-    #ifdef MP3_TX_PIN
+    #ifdef MP3_PLAYER_USE
     Equalizer++;
     if (Equalizer > 5) Equalizer = 0;
     jsonWrite(configSetup, "eq", Equalizer);
@@ -737,7 +751,7 @@ void IR_Equalizer()   {     // Устанавливаем эквалайзер
     DisplayFlag = 3;
     Display_Timer(Equalizer);
     #endif
-    #endif  //MP3_TX_PIN
+    #endif  // MP3_PLAYER_USE
 }
 
 void Favorit_Add_Del(bool direction)   {
@@ -771,8 +785,8 @@ void Digit_Handle (uint8_t digit)   {
         DisplayFlag = 3;
         Display_Timer(Enter_Number);
         #endif
-	    jsonWrite(configSetup, "eff_sel", Enter_Number);
-	    jsonWrite(configSetup, "br", modes[currentMode].Brightness);
+        jsonWrite(configSetup, "eff_sel", Enter_Number);
+        jsonWrite(configSetup, "br", modes[currentMode].Brightness);
         jsonWrite(configSetup, "sp", modes[currentMode].Speed);
         jsonWrite(configSetup, "sc", modes[currentMode].Scale);
         SetBrightness(modes[currentMode].Brightness);
@@ -791,7 +805,7 @@ void Digit_Handle (uint8_t digit)   {
           repeat_multiple_lamp_control = true;
         #endif  //USE_MULTIPLE_LAMPS_CONTROL
         //Serial.println(Enter_Number);
-        //Serial.println("  2 цифры");
+        //Serial.println("  2 цифри");
     }
 }
 

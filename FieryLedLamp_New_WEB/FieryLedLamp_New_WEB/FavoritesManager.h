@@ -29,7 +29,7 @@ class FavoritesManager
     static void SetStatus(char* statusText)                 // помещает в statusText состояние режима работы избранных эффектов
     {
       char buff[6];
-      uint8_t n;
+      //uint8_t n;
       strcpy_P(statusText, PSTR("FAV "));
 
       itoa(FavoritesRunning, buff, 10);
@@ -88,19 +88,20 @@ class FavoritesManager
       bool* loadingFlag
       //#ifdef USE_NTP
       #if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-      , bool* dawnFlag
+      , uint8_t* dawnFlag
       #endif
       , uint8_t* random_on
       , uint8_t* selectedSettings
+      , uint8_t EspMode
     )
     {
       if (FavoritesRunning == 0 ||
           !*ONflag                                          // лампа не переключается на следующий эффект при выключенной матрице
           //#ifdef USE_NTP
           #if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-          || *dawnFlag                                      // лампа не переключается на следующий эффект при включенном будильнике
+          || *dawnFlag == 1                                      // лампа не переключается на следующий эффект при включенном будильнике
           #endif
-          || *currentMode == EFF_WHITE_COLOR && FavoriteModes[EFF_WHITE_COLOR] == 0U // лампа не переключается на следующий эффект, если выбран режим Белый свет, и он не в списке режима Цикл
+          || (*currentMode == EFF_WHITE_COLOR && FavoriteModes[EFF_WHITE_COLOR] == 0U) // лампа не переключается на следующий эффект, если выбран режим Белый свет, и он не в списке режима Цикл
       )
       {
         return false;
@@ -115,61 +116,27 @@ class FavoritesManager
       if (millis() >= nextModeAt)
       {
         *currentMode = getNextFavoriteMode(currentMode);
-        
-		//jsonWrite(configSetup, "eff_sel", *currentMode);
-		//jsonWrite(configSetup, "br", modes[*currentMode].Brightness);
-		//jsonWrite(configSetup, "sp", modes[*currentMode].Speed);
-		//jsonWrite(configSetup, "sc", modes[*currentMode].Scale);
         #ifdef USE_MULTIPLE_LAMPS_CONTROL
-        //multiple_lamp_control ();
         repeat_multiple_lamp_control = true;
         #endif //USE_MULTIPLE_LAMPS_CONTROL
-        
         *loadingFlag = true;
         nextModeAt = getNextTime();
-
           if (*random_on) *selectedSettings = 1U;
-
         #ifdef GENERAL_DEBUG
-        LOG.printf_P(PSTR("Переключение на следующий избранный режим: %d\n\n"), (*currentMode));
+        LOG.printf_P(PSTR("Переключение на следующий выбранный режим: %d\n\n"), (*currentMode));
         #endif
         
-      
+        #if (USE_MQTT)
+        if (EspMode == 1U)
+        {
+          MqttManager::needToPublish = true;
+        }
+        #endif    
         return true;
       }
-
       return false;
     }
-/*
-    static void ReadFavoritesFromEeprom()
-    {
-      Interval = EepromManager::ReadUint16(EEPROM_FAVORITES_START_ADDRESS + 1);
-      Dispersion = EepromManager::ReadUint16(EEPROM_FAVORITES_START_ADDRESS + 3);
-      UseSavedFavoritesRunning = EEPROM.read(EEPROM_FAVORITES_START_ADDRESS + 5);
-      FavoritesRunning = UseSavedFavoritesRunning > 0 ? EEPROM.read(EEPROM_FAVORITES_START_ADDRESS) : FavoritesRunning;
 
-      for (uint8_t i = 0; i < MODE_AMOUNT; i++)
-      {
-        FavoriteModes[i] = EEPROM.read(EEPROM_FAVORITES_START_ADDRESS + i + 6);
-        FavoriteModes[i] = FavoriteModes[i] > 0 ? 1 : 0;
-      }
-    }
-
-    static void SaveFavoritesToEeprom()
-    {
-      EEPROM.put(EEPROM_FAVORITES_START_ADDRESS, FavoritesRunning);
-      EepromManager::WriteUint16(EEPROM_FAVORITES_START_ADDRESS + 1, Interval);
-      EepromManager::WriteUint16(EEPROM_FAVORITES_START_ADDRESS + 3, Dispersion);
-      EEPROM.put(EEPROM_FAVORITES_START_ADDRESS + 5, UseSavedFavoritesRunning);
-
-      for (uint8_t i = 0; i < MODE_AMOUNT; i++)
-      {
-        EEPROM.put(EEPROM_FAVORITES_START_ADDRESS + i + 6, FavoriteModes[i] > 0 ? 1 : 0);
-      }
-
-      EEPROM.commit();
-    }
-*/
     static void TurnFavoritesOff()
     {
       FavoritesRunning = 0;

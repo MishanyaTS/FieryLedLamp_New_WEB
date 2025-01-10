@@ -2209,7 +2209,7 @@ void whiteColorStripeRoutine()
       thisSize = WIDTH;
       halfScale = 101U - halfScale;
     }
-    halfScale = constrain(halfScale, 0U, 50U - BORDERLAND);
+    halfScale = halfScale < 50U ? halfScale : 50U;  //constrain(halfScale, 0U, 50U - BORDERLAND);
 
     uint8_t center =  (uint8_t)round(thisSize / 2.0F) - 1U;
     uint8_t offset = (uint8_t)(!(thisSize & 0x01));
@@ -2287,7 +2287,7 @@ void showWarning(
   FastLED.show();
 
 #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором, соответственно состоянию вкл/выкл матрицы или будильника
-  digitalWrite(MOSFET_PIN, ONflag || (dawnFlag && !manualOff) ? MOSFET_LEVEL : !MOSFET_LEVEL);
+  digitalWrite(MOSFET_PIN, ONflag || (dawnFlag == 1 && !manualOff) ? MOSFET_LEVEL : !MOSFET_LEVEL);
 #endif
 
   loadingFlag = true;                                       // принудительное отображение текущего эффекта (того, что был активен перед предупреждением)
@@ -2384,8 +2384,8 @@ void FillNoise(int8_t layer) {
 void MoveFractionalNoiseX(int8_t amplitude = 1, float shift = 0) {
   for (uint8_t y = 0; y < HEIGHT; y++) {
     int16_t amount = ((int16_t)noise3d[0][0][y] - 128) * 2 * amplitude + shift * 256  ;
-    int8_t delta = abs(amount) >> 8 ;
-    int8_t fraction = abs(amount) & 255;
+    int8_t delta = (uint)abs(amount) >> 8 ;
+    int8_t fraction = (uint)abs(amount) & 255;
     for (uint8_t x = 0 ; x < WIDTH; x++) {
       if (amount < 0) {
         zD = x - delta; zF = zD - 1;
@@ -2405,8 +2405,8 @@ void MoveFractionalNoiseX(int8_t amplitude = 1, float shift = 0) {
 void MoveFractionalNoiseY(int8_t amplitude = 1, float shift = 0) {
   for (uint8_t x = 0; x < WIDTH; x++) {
     int16_t amount = ((int16_t)noise3d[0][x][0] - 128) * 2 * amplitude + shift * 256 ;
-    int8_t delta = abs(amount) >> 8 ;
-    int8_t fraction = abs(amount) & 255;
+    int8_t delta = (uint)abs(amount) >> 8 ;
+    int8_t fraction = (uint)abs(amount) & 255;
     for (uint8_t y = 0 ; y < HEIGHT; y++) {
       if (amount < 0) {
         zD = y - delta; zF = zD - 1;
@@ -5791,7 +5791,7 @@ void drawBlob(uint8_t l, CRGB color) { //раз круги нарисовать 
   {
     for (int8_t x = -1; x < 3; x++)
       for (int8_t y = -1; y < 3; y++)
-        if (!(x == -1 && (y == -1 || y == 2) || x == 2 && (y == -1 || y == 2)))
+        if (!((x == -1 && (y == -1 || y == 2)) || (x == 2 && (y == -1 || y == 2))))
           drawPixelXYF(fmod(trackingObjectPosX[l] + x + WIDTH, WIDTH), trackingObjectPosY[l] + y, color);
   }
 }
@@ -6077,7 +6077,7 @@ void snakesRoutine() {
   //dimAll(220);
   FastLED.clear();
 
-  int8_t dx, dy;
+  int8_t dx = 0, dy = 0;
   for (uint8_t i = 0; i < enlargedObjectNUM; i++) {
     trackingObjectSpeedY[i] += trackingObjectSpeedX[i] * speedfactor;
     if (trackingObjectSpeedY[i] >= 1)
@@ -6466,7 +6466,7 @@ void LiquidLampRoutine(bool isColored) {
     if (enlargedObjectNUM > enlargedOBJECT_MAX_COUNT) enlargedObjectNUM = enlargedOBJECT_MAX_COUNT;
     else if (enlargedObjectNUM < 2U) enlargedObjectNUM = 2U;
 
-    double minSpeed = 0.2, maxSpeed = 0.8;
+    //double minSpeed = 0.2, maxSpeed = 0.8;
 
     for (uint8_t i = 0 ; i < enlargedObjectNUM ; i++) {
       trackingObjectPosX[i] = random8(WIDTH);
@@ -6484,7 +6484,7 @@ void LiquidLampRoutine(bool isColored) {
   LiquidLampPosition();
   //bool physic_on = modes[currentMode].Speed & 0x01;
   //if (physic_on)
-  LiquidLampPhysic;
+  LiquidLampPhysic();
 
   if (!isColored) {
     hue2++;
@@ -7097,7 +7097,7 @@ void smokeballsRoutine() {
     loadingFlag = false;
     setCurrentPalette();
 
-    enlargedObjectNUM = enlargedObjectNUM = (modes[currentMode].Scale - 1U) % 11U + 1U;
+    enlargedObjectNUM = (modes[currentMode].Scale - 1U) % 11U + 1U;
     speedfactor = fmap(modes[currentMode].Speed, 1., 255., .02, .1); // попробовал разные способы управления скоростью. Этот максимально приемлемый, хотя и сильно тупой.
     //randomSeed(millis());
     for (byte j = 0; j < enlargedObjectNUM; j++) {
@@ -7805,11 +7805,12 @@ void sandRoutine() {
     //temp = 255U - temp + 2;
     //if (temp < 2) temp = 255;
     temp = HEIGHT + 1U - pcnt;
-    if (!random8(4U)) // иногда песка осыпается до половины разом
+    if (!random8(4U)){ // иногда песка осыпается до половины разом
       if (random8(2U))
         temp = 2U;
       else
         temp = 3U;
+    }
     //for (uint16_t i = 0U; i < NUM_LEDS; i++)
     for (uint8_t y = 0; y < pcnt; y++)
       for (uint8_t x = 0; x < WIDTH; x++)
@@ -7821,7 +7822,7 @@ void sandRoutine() {
   // осыпаем всё, что есть на экране
   for (uint8_t y = 1; y < HEIGHT; y++)
     for (uint8_t x = 0; x < WIDTH; x++)
-      if (leds[XY(x, y)])                                                          // проверяем для каждой песчинки
+      if (leds[XY(x, y)]){                                                          // проверяем для каждой песчинки
         if (!leds[XY(x, y - 1)]) {                                                 // если под нами пусто, просто падаем
           leds[XY(x, y - 1)] = leds[XY(x, y)];
           leds[XY(x, y)] = 0;
@@ -7846,6 +7847,7 @@ void sandRoutine() {
         }
         else                                                                       // если под нами плато
           pcnt = y;
+      }
 
   // эмиттер новых песчинок
   if (!leds[XY(CENTER_X_MINOR, HEIGHT - 2)] && !leds[XY(CENTER_X_MAJOR, HEIGHT - 2)] && !random8(3)) {
@@ -9075,45 +9077,6 @@ void ballRoutine() {
   for (uint8_t i = 0U; i < deltaValue; i++) {
     for (uint8_t j = 0U; j < deltaValue; j++) {
       leds[XY(coordB[0U] / 10 + i, coordB[1U] / 10 + j)] = ballColor;
-    }
-  }
-}
-
-// =====================================
-//            Flower Ruta
-//    © Stepko and © Sutaburosu
-//     Adaptation © SlingMaster
-//             22/05/22
-// =====================================
-/* --------------------------------- */
-void FlowerRuta() {
-  static uint8_t PETALS;
-  static uint32_t t;
-  if (loadingFlag) {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-    if (selectedSettings) {
-      // scale | speed
-      setModeSettings(random8(1U, 255U), random8(150U, 255U));
-    }
-#endif
-    loadingFlag = false;
-    PETALS = map(modes[currentMode].Scale, 1, 100, 2U, 5U);
-    LOG.printf_P(PSTR("Scale: %03d | PETALS : %02d | Speed %03d\n"), modes[currentMode].Scale, PETALS, modes[currentMode].Speed);
-    FastLED.clear();
-    for (int8_t x = -CENTER_X_MAJOR; x < CENTER_X_MAJOR; x++) {
-      for (int8_t y = -CENTER_Y_MAJOR; y < CENTER_Y_MAJOR; y++) {
-        noise3d[0][x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = (atan2(x, y) / PI) * 128 + 127; // thanks ldirko
-        noise3d[1][x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = hypot(x, y);                    // thanks Sutaburosu
-      }
-    }
-  }
-
-  t++;
-  for (uint8_t x = 0; x < WIDTH; x++) {
-    for (uint8_t y = 0; y < HEIGHT; y++) {
-      byte angle = noise3d[0][x][y];
-      byte radius = noise3d[1][x][y];
-      leds[XY(x, y)] = CHSV(t + radius * (255 / WIDTH), 255, sin8(sin8(t + angle * PETALS + ( radius * (255 / WIDTH))) + t * 4 + sin8(t * 4 - radius * (255 / WIDTH)) + angle * PETALS));
     }
   }
 }

@@ -1,13 +1,27 @@
 // Инициализация FFS
 void FS_init(void) {  
-  SPIFFS.begin();
+  LittleFS.begin();
+  #ifdef ESP32_USED
   {
-    Dir dir = SPIFFS.openDir("/");
-    while (dir.next()) {
-      String fileName = dir.fileName();
-      size_t fileSize = dir.fileSize();
+    File root = LittleFS.open("/");
+    File file = root.openNextFile();
+    while (file) {
+      //Serial.print("FILE: ");
+      //Serial.println(file.name());
+      String fileName = file.name();
+      //size_t fileSize = file.size();
+      file = root.openNextFile();
     }
   }
+  #else
+  {
+    Dir dir = LittleFS.openDir("/");
+    while (dir.next()) {
+      String fileName = dir.fileName();
+      //size_t fileSize = dir.fileSize();
+    }
+  }
+  #endif
   //HTTP страницы для работы с FFS
   //list directory
   HTTP.on("/list", HTTP_GET, handleFileList);
@@ -25,7 +39,7 @@ void FS_init(void) {
     HTTP.send(200, F("text/plain"), "");
   }, handleFileUpload);
   //called when the url is not defined here
-  //use it to load content from SPIFFS
+  //use it to load content from LittleFS
   HTTP.onNotFound([]() {
     if (!handleFileRead(HTTP.uri()))
       HTTP.send(404, F("text/plain"), F("FileNotFound"));
@@ -54,11 +68,11 @@ bool handleFileRead(String path) {
   if (path.endsWith("/")) path += F("index.htm");
   String contentType = getContentType(path);
   String pathWithGz = path + ".gz";
-  if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)) {
-    if (SPIFFS.exists(pathWithGz))
+  if (LittleFS.exists(pathWithGz) || LittleFS.exists(path)) {
+    if (LittleFS.exists(pathWithGz))
       path += ".gz";
-    File file = SPIFFS.open(path, "r");
-    size_t sent = HTTP.streamFile(file, contentType);
+    File file = LittleFS.open(path, "r");
+    HTTP.streamFile(file, contentType);
     file.close();
     return true;
   }
@@ -71,7 +85,7 @@ void handleFileUpload() {
   if (upload.status == UPLOAD_FILE_START) {
     String filename = upload.filename;
     if (!filename.startsWith("/")) filename = "/" + filename;
-    fsUploadFile = SPIFFS.open(filename, "w");
+    fsUploadFile = LittleFS.open(filename, "w");
     filename = String();
   } else if (upload.status == UPLOAD_FILE_WRITE) {
     //DBG_OUTPUT_PORT.print("handleFileUpload Data: "); DBG_OUTPUT_PORT.println(upload.currentSize);
@@ -88,9 +102,9 @@ void handleFileDelete() {
   String path = HTTP.arg(0);
   if (path == "/")
     return HTTP.send(500, F("text/plain"), F("BAD PATH"));
-  if (!SPIFFS.exists(path))
+  if (!LittleFS.exists(path))
     return HTTP.send(404, F("text/plain"), F("FileNotFound"));
-  SPIFFS.remove(path);
+  LittleFS.remove(path);
   HTTP.send(200, F("text/plain"), "");
   path = String();
 }
@@ -101,9 +115,9 @@ void handleFileCreate() {
   String path = HTTP.arg(0);
   if (path == "/")
     return HTTP.send(500, F("text/plain"), F("BAD PATH"));
-  if (SPIFFS.exists(path))
+  if (LittleFS.exists(path))
     return HTTP.send(500, F("text/plain"), F("FILE EXISTS"));
-  File file = SPIFFS.open(path, "w");
+  File file = LittleFS.open(path, "w");
   if (file)
     file.close();
   else
@@ -113,15 +127,46 @@ void handleFileCreate() {
 
 }
 
-
-
+#ifdef ESP32_USED
 void handleFileList() {
   if (!HTTP.hasArg("dir")) {
     HTTP.send(500, F("text/plain"), F("BAD ARGS"));
     return;
   }
   String path = HTTP.arg("dir");
-  Dir dir = SPIFFS.openDir(path);
+  File root = LittleFS.open(path);
+  File file = root.openNextFile();
+  path = String();
+  String output = "[";
+  while (file) {
+    //entry = file.read();
+    if (output != "[") output += ',';
+#if defined (USE_LittleFS)
+    bool isDir = file.isDirectory();
+#else
+    bool isDir = false;
+#endif
+    output += F("{\"type\":\"");
+    output += (isDir) ? F("dir") : F("file");
+    output += F("\",\"name\":\"");
+    output += String(file.name()).substring(1);
+    output += "\"}";
+    file.close();
+//    isDir = false;
+
+    file = root.openNextFile();
+  }
+  output += "]";
+  HTTP.send(200, F("text/json"), output);
+}
+#else
+void handleFileList() {
+  if (!HTTP.hasArg("dir")) {
+    HTTP.send(500, F("text/plain"), F("BAD ARGS"));
+    return;
+  }
+  String path = HTTP.arg("dir");
+  Dir dir = LittleFS.openDir(path);
   path = String();
   String output = "[";
   while (dir.next()) {
@@ -147,4 +192,4 @@ void handleFileList() {
   output += "]";
   HTTP.send(200, F("text/json"), output);
 }
-
+#endif

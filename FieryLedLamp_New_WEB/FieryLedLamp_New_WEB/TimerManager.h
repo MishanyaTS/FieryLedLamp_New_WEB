@@ -27,9 +27,9 @@ class TimerManager
 
         TimerManager::TimerRunning = false;
         TimerManager::TimerHasFired = true;
-        FastLED.clear();
-        delay(2);
-        FastLED.show();
+        //FastLED.clear();
+        //delay(2);
+        //FastLED.show();
         *ONflag = !(*ONflag);
         jsonWrite(configSetup, "Power", (uint8_t)*ONflag);
 
@@ -38,7 +38,7 @@ class TimerManager
             *timeout_save_file_changes = millis() - SAVE_FILE_DELAY_TIMEOUT;
             if (!FavoritesManager::FavoritesRunning) EepromManager::EepromPut(modes);
             *save_file_changes = 7;
-            timeTick();
+            Save_File_Changes();
         }
         else EepromManager::EepromGet(modes);
         changePower();        
