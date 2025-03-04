@@ -283,7 +283,29 @@ void buttonTick()
 
       loadingFlag = true;
     }
-  }
+  else
+    {
+      loadingFlag = true;
+      String str = "Точка доступа 192.168.4.1";
+      while(!fillString(str.c_str(), CRGB::White, false)) {
+          delay(1);
+          #ifdef ESP32_USED
+           esp_task_wdt_reset();
+          #else
+           ESP.wdtFeed();
+          #endif
+          }
+      if (ColorTextFon  & (!ONflag || (currentMode == EFF_COLOR && modes[currentMode].Scale < 3))){
+        FastLED.clear();
+        delay(1);
+        FastLED.show();
+      }
+      loadingFlag = true;
+    }
+    #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором, соответственно состоянию вкл/выкл матрицы или будильника
+      digitalWrite(MOSFET_PIN, ONflag || (dawnFlag == 1 && !manualOff) ? MOSFET_LEVEL : !MOSFET_LEVEL);
+    #endif
+}
 
 
   // шестикратное нажатие

@@ -1,10 +1,10 @@
-// Текущая версия : FieryLedLamp v4.0_new_web 127 эффектов
+// Текущая версия : FieryLedLamp v5.0_new_web 128 эффектов
 // ВНИМАНИЕ!!! Большая часть настроек перенесена в файл data/config и может изменяться в процессе эксплуатации лампы.
 // Внимательно читайте файл ПРОЧТИ МЕНЯ!!!.txt и ПРОЧТИ МЕНЯ.doc (тут с картинками)
 
 #pragma once
 
-#define FLL_VERSION           (" Ver.4.0.127")
+#define FLL_VERSION           (" Ver.5.0.128")
 
 
 // ==========  ВНЕШНЕЕ УПРАВЛЕНИЕ  ===============
@@ -15,10 +15,18 @@
 //#define USE_BLYNK  ("сюда_вставить_токен_из_приложения")  // раскомментируйте эту строку, если вы используете приложение Blynk (для iOS и Android) https://community.alexgyver.ru/threads/nastrojka-programmy-blynk-dlja-fiery-led-lamp.7787/
 
 // =======  МОДУЛИ, ИСПОЛЬЗУЕМЫЕ  ==========
-#define ESP_USE_BUTTON                                      // Закомментировать, если кнопка не используется (иначе лампа может регистрировать "фантомные" нажатия и некорректно устанавливать яркость)
+#define ESP_USE_BUTTON                                      // Закомментировать, если кнопка не используется ((иначе лампа может регистрировать "фантомные" нажатия и некорректно устанавливать яркость)отключается на web странице)
 #define TM1637_USE                                          // Закомментировать, если не используется дисплей TM1637
-#define MP3_PLAYER_USE                                      // Закомментировать строку в случае отсутствия плеера !!!
-#define IR_RECEIVER_USE                                     // Если не используется ИК ДУ - Закомментировать эту строку
+#define MP3_PLAYER_USE                                      // Закомментировать, если не используется плеер
+#define IR_RECEIVER_USE                                     // Закомментировать, если не используется ИК ДУ
+#define USE_RTC                                             // Закомментировать, если не используется RTC модуль
+#ifdef USE_RTC
+#define RTC_3231                                            
+
+#endif
+#ifdef TM1637_USE
+  #define RTC_ATTACHED_TO_TM                                // для экономии пинов, DS3231 подключается параллельно TM1637
+#endif
 
 // =============  НАСТРОЙКА  ====================
 #define USE_DEFAULT_SETTINGS_RESET                          // Закомментируйте эту строку, если не требуется, чтобы при загрузке списка эффектов с лампы настройки эффектов смахивали на значение по умолчанию
@@ -54,9 +62,9 @@
 #define BUTTON_IS_SENSORY     (1)                           // Если у вас не сенсорная, а простая кнопка, поменяйте в этой строке 1 на 0
 #define BUTTON_LOCK_ON_START                                // с этой строкой, если в момент включения лампы в розетку успеть нажать кнопку или если вы забудете кнопку подключить, лампа отключит реакцию нажатия кнопки до следующего раза
 #ifdef ESP_USE_BUTTON
-#define DISPLAY_IP_AT_START                                 // Раскомментируйте эту строку, если хотите, чтобы при включении питания и подключении к WiFi лампа один раз выводила свой IP адрес (для ламп с кнопкой)
+#define DISPLAY_IP_AT_START                                 // Закомментируйте эту строку, если хотите, чтобы при включении питания и подключении к WiFi лампа один раз выводила свой IP адрес (для ламп с кнопкой)
 #else
-   #define DISPLAY_IP_AT_START                              // Закомментируйте эту строку, если не хотите, чтобы при включении питания и подключении к WiFi лампа один раз выводила свой IP адрес (для ламп без кнопки)
+#define DISPLAY_IP_AT_START                                 // Закомментируйте эту строку, если не хотите, чтобы при включении питания и подключении к WiFi лампа один раз выводила свой IP адрес (для ламп без кнопки)
 #endif  //ESP_USE_BUTTON
 #if defined (ESP_USE_BUTTON)
 #define BUTTON_STEP_TIMEOUT   (100U)                        // каждые BUTTON_STEP_TIMEOUT мс будет генерироваться событие удерживания кнопки (для регулировки яркости)
@@ -105,6 +113,10 @@
 #ifdef ESP32_USED
 #define LED_PIN               (32U)                         // Пин ленты
 #define BTN_PIN               (35U)                         // Пин кнопки
+
+#define I2C_SDA               (21U)                         // DS3231 SDA pin
+#define I2C_SCL               (22U)                         // DS3231 SCL pin
+
 #define MOSFET_PIN            (33U)                         // Пин MOSFET транзистора - может использоваться для управления питанием матрицы/ленты (если раскомментирована строка)
 #define MOSFET_LEVEL          (HIGH)                        // логический уровень, в который будет установлен пен MOSFET_PIN, когда матрица включена - HIGH или LOW (если раскомментировать)
 //#define ALARM_PIN             (39U)                       // пен состояния будильника – может быть использован для управления любым внешним устройством на время работы будильника (если раскомментировать)
@@ -128,15 +140,24 @@
 // --- ESP_PIN_OUT ESP8266 ---  РАЗДЕЛЕНИЕ КОНТАКТОВ МОДУЛЯ ESP8266 (ESP32 смотри выше) ---
 #define LED_PIN               (0U)                          // Пин ленты                (D3) 
 #define BTN_PIN               (4U)                          // Пин кнопки               (D2)
-#define MOSFET_PIN            (5U)                          // Пин MOSFET транзистора (D1) - может использоваться для управления питанием матрицы/ленты (если раскомментирована строка)
+
+#define MOSFET_PIN            (16U)                         // Пин MOSFET транзистора (D0) - может использоваться для управления питанием матрицы/ленты (если раскомментирована строка)
 #define MOSFET_LEVEL          (HIGH)                        // логический уровень, в который будет установлен пен MOSFET_PIN, когда матрица включена - HIGH или LOW (если раскомментировать)
 //#define ALARM_PIN             (15U)                       // Пин состояния будильника – может быть использован для управления любым внешним устройством на время работы будильника (если раскомментировать)
 //#define ALARM_LEVEL           (HIGH)                      // логический уровень, в который будет установлен пен ALARM_PIN, когда "рассвет"/будильник включен (если раскомментировать)
 
 #ifdef TM1637_USE
-#define DIO                   (16U)                         // D0 TM1637 display DIO pin
-#define CLK                   (14U)                         // D5 TM1637 display CLK pin
+  #define DIO                   (14U)                       // TM1637 DIO на pin (D5)
+  #define CLK                   (5U)                        // TM1637 CLK на pin (D1)
 #endif  //TM1637_USE
+
+#ifdef RTC_ATTACHED_TO_TM
+  #define I2C_SDA               (CLK)
+  #define I2C_SCL               (DIO)
+#else
+  #define I2C_SDA               (5U)                        // DS3231 SDA на GPIO5 (D1)
+  #define I2C_SCL               (14U)                       // DS3231 SCL на GPIO14 (D5)
+#endif
 
 #ifdef MP3_PLAYER_USE
  #define MP3_TX_PIN            (12U)                        // Определяет пин (D6) TX (RX на плеере) последовательного порта
@@ -250,44 +271,45 @@
 #define EFF_RAINBOW_VER         ( 88U)    // Радуга
 #define EFF_RAINBOW             ( 89U)    // Радуга 3D
 #define EFF_RAINBOW_SPOT        ( 90U)    // Радужное Пятно
-#define EFF_SNAKE               ( 91U)    // Радужный змей
-#define EFF_DANDELIONS          ( 92U)    // Разноцветные одуванчики
+#define EFF_RAINBOW_RINGS       ( 91U)    // Радужные кольца
+#define EFF_SNAKE               ( 92U)    // Радужный змей
 #define EFF_RAIN                ( 93U)    // Разноцветный дождь
-#define EFF_RIVERS              ( 94U)    // Реки Ботсваны
-#define EFF_LIGHTERS            ( 95U)    // Светлячки
-#define EFF_LIGHTER_TRACES      ( 96U)    // Светлячки со шлейфом
-#define EFF_FEATHER_CANDLE      ( 97U)    // Свеча
-#define EFF_AURORA              ( 98U)    // Северное сияние
-#define EFF_SERPENTINE          ( 99U)    // Серпантин
-#define EFF_SCANNER             (100U)    // Сканер
-#define EFF_SINUSOID3           (101U)    // Синусоид
-#define EFF_COLORS              (102U)    // Смена цвета
-#define EFF_SNOW                (103U)    // Снегопад
-#define EFF_SPECTRUM            (104U)    // Спектрум
-#define EFF_SPIRO               (105U)    // Спирали
-#define EFF_FLOCK               (106U)    // Стая
-#define EFF_FLOCK_N_PR          (107U)    // Стая и хищник
-#define EFF_ARROWS              (108U)    // Стрелки
-#define EFF_STROBE              (109U)    // Строб.Хаос.Дифузия
-#define EFF_SHADOWS             (110U)    // Тени
-#define EFF_PACIFIC             (111U)    // Тихий океан
-#define EFF_TORNADO             (112U)    // Торнадо
-#define EFF_SIMPLE_RAIN         (113U)    // Tyчкa в банке
-#define EFF_FIREWORK            (114U)    // Фейерверк
-#define EFF_FIREWORK_2          (115U)    // Фейерверк 2
-#define EFF_FAIRY               (116U)    // Фея
-#define EFF_FONTAN              (117U)    // Фонтан
-#define EFF_COLOR               (118U)    // Цвет
-#define EFF_EFF_COLORED_PYTHON  (119U)    // Цветной Питон
-#define EFF_EFF_SAND            (120U)    // Цветные драже
-#define EFF_COLOR_FRIZZLES      (121U)    // Цветные кудри
-#define EFF_EFF_LOTUS           (122U)    // Цветок лотоса
-#define EFF_TURBULENCE          (123U)    // Цифровая турбулентность
-#define EFF_SPHERES             (124U)    // Шapы
-#define EFF_NEXUS               (125U)    // Nexus
-#define EFF_CLOCK               (126U)    // Часы
+#define EFF_DANDELIONS          ( 94U)    // Разноцветные одуванчики
+#define EFF_RIVERS              ( 95U)    // Реки Ботсваны
+#define EFF_LIGHTERS            ( 96U)    // Светлячки
+#define EFF_LIGHTER_TRACES      ( 97U)    // Светлячки со шлейфом
+#define EFF_FEATHER_CANDLE      ( 98U)    // Свеча
+#define EFF_AURORA              ( 99U)    // Северное сияние
+#define EFF_SERPENTINE          (100U)    // Серпантин
+#define EFF_SCANNER             (101U)    // Сканер
+#define EFF_SINUSOID3           (102U)    // Синусоид
+#define EFF_COLORS              (103U)    // Смена цвета
+#define EFF_SNOW                (104U)    // Снегопад
+#define EFF_SPECTRUM            (105U)    // Спектрум
+#define EFF_SPIRO               (106U)    // Спирали
+#define EFF_FLOCK               (107U)    // Стая
+#define EFF_FLOCK_N_PR          (108U)    // Стая и хищник
+#define EFF_ARROWS              (109U)    // Стрелки
+#define EFF_STROBE              (110U)    // Строб.Хаос.Дифузия
+#define EFF_SHADOWS             (111U)    // Тени
+#define EFF_PACIFIC             (112U)    // Тихий океан
+#define EFF_TORNADO             (113U)    // Торнадо
+#define EFF_SIMPLE_RAIN         (114U)    // Tyчкa в банке
+#define EFF_FIREWORK            (115U)    // Фейерверк
+#define EFF_FIREWORK_2          (116U)    // Фейерверк 2
+#define EFF_FAIRY               (117U)    // Фея
+#define EFF_FONTAN              (118U)    // Фонтан
+#define EFF_COLOR               (119U)    // Цвет
+#define EFF_EFF_COLORED_PYTHON  (120U)    // Цветной Питон
+#define EFF_EFF_SAND            (121U)    // Цветные драже
+#define EFF_COLOR_FRIZZLES      (122U)    // Цветные кудри
+#define EFF_EFF_LOTUS           (123U)    // Цветок лотоса
+#define EFF_TURBULENCE          (124U)    // Цифровая турбулентность
+#define EFF_SPHERES             (125U)    // Шapы
+#define EFF_NEXUS               (126U)    // Nexus
+#define EFF_CLOCK               (127U)    // Часы
 
-#define MODE_AMOUNT         (127U)    // количество режимов
+#define MODE_AMOUNT         (128U)    // количество режимов
 
 // ============= МАССИВ НАСТРОЕК ЭФФЕКТОВ ПО УМОЛЧАНИЮ ===================
 // формат записи:
@@ -385,9 +407,10 @@ static const uint8_t defaultSettings[][3] PROGMEM = {
   {  10, 215,  50}, // Радуга
   {  10,  13,  60}, // Радуга 3D
   {  40, 200,  40}, // Радужное Пятно
+  {  20, 128,  25}, // Радужные кольца
   {  15, 205, 100}, // Радужный змей
-  {  20,  50,  90}, // Разноцветные одуванчики
   {  15, 205,   1}, // Разноцветный дождь
+  {  20,  50,  90}, // Разноцветные одуванчики
   {  12, 175,  50}, // Реки Ботсваны
   {  15, 180,  23}, // Светлячки
   {  15, 185,  93}, // Светлячки со шлейфом

@@ -13,6 +13,7 @@
 // ESP32 :
 // https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
 // Проверялось на ядре 1.0.6 и 2.0.14. На ядре 1.0.6 код занимает на 4% меньше места.
+// При не хватки памяти, смотреть файл "Увеличение раздела" в архиве "Hack"
 // Для использования ядра 1.0.6 закомментируйте соответствующую строку ниже.
 // Выбираем плату ESP32 Dev Module. На платах ESP32S2, ESP32S3, ESP32C2 работа не проверялась
 // =================================================================
@@ -35,18 +36,17 @@
  #include <WiFiAP.h>
  #include <WebServer.h>
  #include <ESP32SSDP.h>               // https://github.com/luc-github/ESP32SSDP
- #include <HTTPUpdateServer.h>        // Обновление с web страницы
  #include <time.h>
  #include <HardwareSerial.h>          // Используется аппаратный UART
  #include "esp_system.h"
  #include "esp_int_wdt.h"
  #include "esp_task_wdt.h"
-
+ #include <ElegantOTA.h>
 #else
  #include <ESP8266SSDP.h>
- #include <ESP8266HTTPUpdateServer.h> // Обновление с web страницы
  #include <ESP8266WiFi.h>
- #include <ESP8266WebServer.h> 
+ #include <ESP8266WebServer.h>
+ #include <ElegantOTA.h>
  #define FASTLED_USE_PROGMEM 1        // просим библиотеку FASTLED экономить память контроллера на свои палитры
 #endif
 
@@ -55,6 +55,12 @@
 #include <EEPROM.h>
 #include <TimeLib.h>
 #include "Constants.h"
+#ifdef USE_RTC
+  #ifdef RTC_3231
+  #include <Wire.h>
+    #include <RtcDS3231.h>
+  #endif
+#endif
 #ifdef ESP_USE_BUTTON
 #include <GyverButton.h>
 #endif
@@ -107,6 +113,13 @@
 
 
 // --- ИНИЦИАЛИЗАЦИЯ ОБЪЕКТОВ ----------
+#ifdef USE_RTC
+  #ifdef RTC_3231
+    RtcDS3231<TwoWire> Rtc(Wire);
+  #endif
+RtcDateTime timeToSet;
+#endif
+
 CRGB leds[NUM_LEDS];
 WiFiUDP Udp;
 
@@ -169,15 +182,13 @@ SendCurrentDelegate MqttManager::sendCurrentDelegate = NULL;
 #endif
 
 #ifdef ESP32_USED
- HTTPUpdateServer httpUpdater;           // Объект для обнавления с web страницы
+ WebServer server(80);
  WebServer HTTP (ESP_HTTP_PORT);         // Объект для обнавления с web страницы
 #else
- ESP8266HTTPUpdateServer httpUpdater;    // Объект для обнавления с web страницы
+ ESP8266WebServer server(80);
  ESP8266WebServer HTTP (ESP_HTTP_PORT);  // Web интерфейс для устройства
 #endif
 File fsUploadFile;                       // Для файловой системы
-
-
 
 // --- ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ -------
 uint16_t localPort = ESP_UDP_PORT;
@@ -347,6 +358,47 @@ uint8_t hours;                         // Часы
 //uint8_t last_hours; 
 uint8_t AutoBrightness;                // Автояркость on/off
 uint8_t last_day_night = 0;
+bool hasRtc = true;
+
+#ifdef USE_RTC
+bool wasError(const char* errorTopic = "")
+{
+  #ifdef RTC_3231
+    uint8_t error = Rtc.LastError();
+    if (error != 0)
+    {
+        LOG.println(errorTopic);
+        LOG.println(error);
+
+        switch (error)
+        {
+        case Rtc_Wire_Error_None:
+            LOG.println(F("(none?!)"));
+            break;
+        case Rtc_Wire_Error_TxBufferOverflow:
+            LOG.println(F("transmit buffer overflow"));
+            break;
+        case Rtc_Wire_Error_NoAddressableDevice:
+            LOG.println(F("no device responded"));
+            hasRtc = false;
+            break;
+        case Rtc_Wire_Error_UnsupportedRequest:
+            LOG.println(F("device doesn't support request"));
+            break;
+        case Rtc_Wire_Error_Unspecific:
+            LOG.println(F("unspecified error"));
+            break;
+        case Rtc_Wire_Error_CommunicationTimeout:
+            LOG.println(F("communications timed out"));
+            hasRtc = false;
+            break;
+        }
+        return true;
+    }
+#endif
+    return false;
+}
+#endif
 
 void setup()  //==================================================================  void setup()  =========================================================================
 {
@@ -367,6 +419,9 @@ void setup()  //================================================================
   LOG.print (F("  ESP8266\n"));
   #endif
 
+#ifndef USE_RTC
+  hasRtc = false;
+#endif
 
   #if defined(ESP_USE_BUTTON) && defined(BUTTON_LOCK_ON_START)
     #if (BUTTON_IS_SENSORY == 1)
@@ -459,6 +514,69 @@ void setup()  //================================================================
   summerTime.offset = winterTime.offset + jsonReadtoInt(configSetup, "Summer_Time") *60;
   localTimeZone.setRules (summerTime, winterTime);
   #endif
+  
+  #ifdef USE_RTC
+    #ifdef RTC_3231
+    Wire.begin(I2C_SDA, I2C_SCL);
+    #endif
+    Rtc.Begin();
+    RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
+    time_t utcCompiledUnix = localTimeZone.toUTC(compiled.Epoch32Time());
+    RtcDateTime utcCompiled;
+    utcCompiled.InitWithEpoch32Time(utcCompiledUnix);
+    printDateTime(utcCompiled);
+
+    if (!Rtc.IsDateTimeValid())
+    {
+        if (!wasError("setup IsDateTimeValid"))
+        {
+            // Common Causes:
+            //    1) first time you ran and the device wasn't running yet
+            //    2) the battery on the device is low or even missing
+            LOG.println(F("RTC lost confidence in the DateTime!"));
+            // following line sets the RTC to the date & time this sketch was compiled
+            // it will also reset the valid flag internally unless the Rtc device is
+            // having an issue
+            Rtc.SetDateTime(utcCompiled);
+        }
+    }
+
+    if (!Rtc.GetIsRunning())
+    {
+        if (!wasError("setup GetIsRunning"))
+        {
+            LOG.println(F("RTC was not actively running, starting now"));
+            Rtc.SetIsRunning(true);
+        }
+    }
+
+    RtcDateTime now = Rtc.GetDateTime();
+    if (!wasError("setup GetDateTime"))
+    {
+        if (now < utcCompiled)
+        {
+            LOG.println(F("RTC is older than compile time, updating DateTime"));
+            Rtc.SetDateTime(utcCompiled);
+        }
+        else if (now > utcCompiled)
+        {
+            LOG.println(F("RTC is newer than compile time, this is expected"));
+        }
+        else if (now == utcCompiled)
+        {
+            LOG.println(F("RTC is the same as compile time, while not expected all is still fine"));
+        }
+    }
+    // never assume the Rtc was last configured by you, so
+    // just clear them to your needed state
+    #ifdef RTC_3231
+    Rtc.Enable32kHzPin(false);
+    wasError("setup Enable32kHzPin");
+    Rtc.SetSquareWavePin(DS3231SquareWavePin_ModeNone);
+    wasError("setup SetSquareWavePin");
+    #endif
+  #endif //USE_RTC
+  
   #ifdef MP3_PLAYER_USE
   eff_volume = jsonReadtoInt(configSetup, "vol");
   eff_sound_on = (jsonReadtoInt(configSetup, "on_sound")==0)? 0 : eff_volume;
@@ -670,8 +788,31 @@ void setup()  //================================================================
     LOG.print (F("Heap Size after connection AP mode = "));
     LOG.println(ESP.getFreeHeap());
     LOG.println (F("*******************************************"));
-    #endif    
+    #endif
     connect = true;
+    #ifdef DISPLAY_IP_AT_START
+        loadingFlag = true;
+      #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором, матрица должна быть включена на время вывода текста
+        digitalWrite(MOSFET_PIN, MOSFET_LEVEL);
+      #endif
+        while(!fillString(WiFi.softAPIP().toString().c_str(), CRGB::White, false)) {
+           delay(1);
+           #ifdef ESP32_USED
+            esp_task_wdt_reset();
+          #else
+           ESP.wdtFeed();
+          #endif
+           }
+        if (ColorTextFon  & (!ONflag || (currentMode == EFF_COLOR && modes[currentMode].Scale < 3))){
+          FastLED.clear();
+          delay(1);
+          FastLED.show();
+        }
+      #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором, соответственно состоянию вкл/выкл матрицы или будильника
+        digitalWrite(MOSFET_PIN, ONflag || (dawnFlag == 1 && !manualOff) ? MOSFET_LEVEL : !MOSFET_LEVEL);
+      #endif
+        loadingFlag = true;
+      #endif  // DISPLAY_IP_AT_START
     delay (100);    
   }
   else                                                      // режим WiFi клиента. Подключаемся к роутеру
@@ -823,7 +964,22 @@ void setup()  //================================================================
 
 void loop()  //====================================================================  void loop()  ===========================================================================
 {
-  
+  #ifdef USE_RTC
+     if (hasRtc) {
+      #ifdef RTC_3231
+       if (!Rtc.IsDateTimeValid())
+       #endif
+       {
+           if (!wasError("loop IsDateTimeValid"))
+           {
+               // Common Causes:
+               //    1) the battery on the device is low or even missing and the power line was disconnected
+               LOG.println(F("RTC lost confidence in the DateTime!"));
+           }
+       }
+     }
+  #endif //USE_RTC
+
  if (espMode) {
   if (WiFi.status() != WL_CONNECTED) {
     if ((millis()-my_timer) >= 1000UL) {    
@@ -1084,3 +1240,23 @@ do {    //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++======
   #endif
 } while (connect);
 }
+
+#define countof(a) (sizeof(a) / sizeof(a[0]))
+
+#ifdef USE_RTC
+void printDateTime(const RtcDateTime& dt)
+{
+    char datestring[26];
+
+    snprintf_P(datestring,
+            countof(datestring),
+            PSTR("%02u/%02u/%04u %02u:%02u:%02u"),
+            dt.Day(),
+            dt.Month(),
+            dt.Year(),
+            dt.Hour(),
+            dt.Minute(),
+            dt.Second() );
+    LOG.println(datestring);
+}
+#endif

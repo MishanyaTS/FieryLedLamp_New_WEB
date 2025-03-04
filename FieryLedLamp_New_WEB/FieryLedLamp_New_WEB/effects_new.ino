@@ -522,38 +522,7 @@ void Swirl() {
   // blurScreen(beatsin8(5U, 20U, 5U));
   blurScreen(4U + random8(8));
   step++;
-  } // else у пачатку функції
-}
-
-// -------------------------------------------
-// for effect Ukraine
-// -------------------------------------------
-void drawCrest() {
-  static const uint32_t data[9][5] PROGMEM = {
-    {0x000000, 0x000000, 0xFFD700, 0x000000, 0x000000 },
-    {0xFFD700, 0x000000, 0xFFD700, 0x000000, 0xFFD700 },
-    {0xFFD700, 0x000000, 0xFFD700, 0x000000, 0xFFD700 },
-    {0xFFD700, 0x000000, 0xFFD700, 0x000000, 0xFFD700 },
-    {0xFFD700, 0x000000, 0xFFD700, 0x000000, 0xFFD700 },
-    {0xFFD700, 0xFFD700, 0xFFD700, 0xFFD700, 0xFFD700 },
-    {0xFFD700, 0x000000, 0xFFD700, 0x000000, 0xFFD700 },
-    {0x000000, 0xFFD700, 0xFFD700, 0xFFD700, 0x000000 },
-    {0x000000, 0x000000, 0xFFD700, 0x000000, 0x000000 }
-  };
-
-  uint8_t posX = CENTER_X_MAJOR - 3;
-  uint8_t posY = 9;
-  uint32_t color;
-  if (HEIGHT > 16) {
-    posY = CENTER_Y_MINOR - 1;
-  }
-  FastLED.clear();
-  for (uint8_t y = 0U; y < 9; y++) {
-    for (uint8_t x = 0U; x < 5; x++) {
-      color = data[y][x];
-      drawPixelXY(posX + x, posY - y, color);
-    }
-  }
+  } 
 }
 
 // ************************** СТРЕЛКИ *************************
@@ -1204,130 +1173,6 @@ void BotswanaRivers() {
   step++;
 }
 
-/*
-// ========== Botswana Rivers New ===========
-//      © SlingMaster | by Alex Dovby
-//              EFF_RIVERS
-//            Реки Ботсваны
-
-//---------------------------------------
-void flora() {
-  if (WIDTH < 10) return;
-  static const uint8_t POS_X = (CENTER_X_MINOR - 6);
-  static const  uint32_t LEAF_COLOR = 0x1F2F00;
-  static const bool data[5][5] = {
-    { 0, 0, 0, 0, 1 },
-    { 0, 0, 1, 1, 1 },
-    { 0, 1, 1, 1, 1 },
-    { 0, 1, 1, 1, 0 },
-    { 1, 0, 0, 0, 0 }
-  };
-
-  uint8_t h =  random8(10U, 15U);
-  uint8_t posX = 3; // floor(WIDTH * 0.5) - 3;
-  byte deltaY = random8(2U);
-
-  gradientVertical(POS_X - 1, 0, POS_X, 9U, 70, 75, 65U, 255U, 255U);
-  gradientVertical(POS_X + 1, 0, POS_X + 2, 15U, 70, 75, 65U, 255U, 255U);
-  drawPixelXY(POS_X + 2, h - random8(floor(h * 0.5)), random8(2U) == 1 ? 0xFF00E0 :  random8(2U) == 1 ? 0xFFFF00 : 0x00FF00);
-  drawPixelXY(POS_X + 1, h - random8(floor(h * 0.25)), random8(2U) == 1 ? 0xFF00E0 : 0xFFFF00);
-  if (random8(2U) == 1) {
-    drawPixelXY(posX + 1, 5U, random8(2U) == 1 ? 0xEF001F :  0x9FFF00);
-  }
-  h =  floor(h * 0.65);
-  drawPixelXY(POS_X, h - random8(5, h - 2), random8(2U) == 1 ? 0xFF00E0 : 0xFFFF00);
-
-  // draw leafs -------------------
-  for (uint8_t y = 0; y < 5; y++) {
-    for (uint8_t x = 0; x < 5; x++) {
-      if (data[y][x]) {
-        leds[XY(POS_X + x, 7 + deltaY - y)] = LEAF_COLOR;
-        if (WIDTH > 16) {
-          leds[XY(POS_X - x, 15 - deltaY - y)] = LEAF_COLOR;
-        }
-      }
-    }
-  }
-}
-
-//---------------------------------------
-void animeBobbles() {
-  const uint32_t color = 0xF0F7FF;
-  // сдвигаем Bobbles вверх ----
-  for (uint8_t x = CENTER_X_MINOR; x < (CENTER_X_MINOR + 4); x++) {
-    for (uint8_t y = HEIGHT; y > 0U; y--) {
-      if (getPixColorXY(x, y - 1) == color) {
-        drawPixelXY(x, y, color);
-        drawPixelXY(x, y - 1, getPixColorXY(WIDTH - 1, y - 1));
-      }
-    }
-  }
-  // ----------------------
-  if ( step % 4 == 0) {
-    drawPixelXY(random8(CENTER_X_MINOR, CENTER_X_MINOR + 4), 0U, color);
-    if ( step % 11 == 0) {
-      drawPixelXY(random8(CENTER_X_MINOR, CENTER_X_MINOR + 4), 1U, color);
-    }
-  }
-}
-
-//---------------------------------------
-void createScene(uint8_t idx) {
-  switch (idx) {
-    case 0:     // blue green ------
-      gradientVertical(0, HEIGHT * 0.25, WIDTH, HEIGHT, 96, 160, 64, 255, 255U);
-      gradientVertical(0, 0, WIDTH, HEIGHT * 0.25, 96, 96, 255, 64, 255U);
-      break; //CENTER_Y_MINOR
-    case 1:     // aquamarine green
-      gradientVertical(0, 0, WIDTH, HEIGHT, 96, 130, 48, 255, 255U);
-      break;
-    case 2:     // blue aquamarine -
-      gradientVertical(0, CENTER_Y_MINOR, WIDTH, HEIGHT, 170, 160, 100, 200, 255U);
-      gradientVertical(0, 0, WIDTH, CENTER_Y_MINOR, 100, 170, 255, 100, 255U);
-      break;
-    case 3:     // yellow green ----
-      gradientVertical(0, CENTER_Y_MINOR, WIDTH, HEIGHT, 100, 80, 60, 160, 255U);
-      gradientVertical(0, 0, WIDTH, CENTER_Y_MINOR, 96, 100, 205, 60, 255U);
-      break;
-    case 4:     // sea green -------
-      gradientVertical(0, floor(HEIGHT  * 0.3), WIDTH, HEIGHT, 120, 160, 64, 200, 255U);
-      gradientVertical(0, 0, WIDTH, floor(HEIGHT  * 0.3), 120, 120, 225, 64, 255U);
-      break;
-    default:
-      drawRec(0, 0, WIDTH, HEIGHT, 0x000050);
-      break;
-  }
-  flora();
-}
-
-//---------------------------------------
-void BotswanaRivers() {
-  uint8_t divider;
-  if (loadingFlag) {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-    if (selectedSettings) {
-      //                          scale | speed 210
-      setModeSettings(1U + random8(252U), 20 + random8(180U));
-    }
-#endif
-    loadingFlag = false;
-    step = 0U;
-    divider = floor((modes[currentMode].Scale - 1) / 20);       // маштаб задает смену палитры воды
-    createScene(divider);
-  }
-
-  // restore scene after power on ---------
-  if (getPixColorXY(0U, HEIGHT - 2) == CRGB::Black) {
-    createScene(divider);
-  }
-
-  // LOG.printf_P(PSTR("%02d | hue2 = %03d | min = %03d \n\r"), step, hue2, deltaHue2);
-  // -------------------------------------
-  animeBobbles();
-  step++;
-}
-*/
-
 // ============ Watercolor ==============
 //      © SlingMaster | by Alex Dovby
 //            EFF_WATERCOLOR
@@ -1698,110 +1543,6 @@ void Hourglass() {
     }
   }
 }
-/*
-// ============== Spectrum ==============
-//             © SlingMaster
-//              EFF_SPECTRUM
-//                Spectrum
-//---------------------------------------
-
-void  Spectrum() {
-  uint8_t divider;
-  uint8_t deltaY;
-  uint8_t posX;
-
-  if (loadingFlag) {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-    if (selectedSettings) {
-      //                     scale | speed 210
-      setModeSettings(random8(100U), 180U + random8(75U));
-    }
-#endif
-    loadingFlag = false;
-    step = deltaValue;
-    hue = 120;
-    hue2 = hue + 30;
-    posX = 0;
-    deltaHue2 = 0;
-    divider = floor(modes[currentMode].Scale / 12.5);
-    if (divider % 2 == 0) {
-      blurScreen(dim8_raw(beatsin8(3, 64, 3)));
-      DrawLine(3, 0, 4, 0 , 0x00FF00);
-    } else {
-      FastLED.clear();
-      DrawLine(3, 0, 4, 0 , 0xFF3F00);
-    }
-  }
-
-  deltaHue2++;
-  if (deltaHue2 >= WIDTH) {
-    deltaHue2 = 0;
-  }
-  divider = floor(modes[currentMode].Scale / 12.5);
-  posX = deltaHue2;
-  deltaY = floor((HEIGHT - validMinMax(random8(HEIGHT - 1), 3, HEIGHT)) * 0.5);
-
-  switch (divider ) {
-    case 0:
-    case 1:
-      if (step % 32 == 0) {
-        hue++;
-      }
-      break;
-    case 2:
-    case 3:
-      if (step % 2 == 0) {
-        hue++;
-      }
-      break;
-    case 4:
-    case 5:
-      if (step == 0) {
-        hue += 30;
-      }
-      break;
-    default:
-      if (step == 0) {
-        hue += 10;
-        hue2 -= 10;
-      }
-      break;
-  }
-
-  if (divider < 6) {
-    if (hue >= 225) {
-      hue2 = 224;
-    } else {
-      hue2 = hue + 30;
-    }
-  }
-
-  // if (step % 32 == 0) {
-  //   LOG.printf_P(PSTR("divider = %01d | hue = %03d | hue2 = %03d | scale = %03d | BR = %03d\n\r"), divider, hue, hue2, modes[currentMode].Scale, (deltaValue));
-  // }
-
-  deltaValue = random8(128);          // delta brightness
-  if (posX % 2 == 0) {
-    if (divider < 6) {
-      gradientVertical(posX, CENTER_Y_MINOR, posX + 1, CENTER_Y_MINOR + random8(2), hue + 15, hue2 - 15, 128 + deltaValue, 255 - deltaValue, 255U);
-    }
-    DrawLine(posX, HEIGHT - deltaY, posX, HEIGHT - 1, 0x000000);
-    DrawLine(posX, 0, posX, deltaY , 0x000000);
-  } else {
-    gradientVertical(posX, deltaY, posX + 1, HEIGHT - deltaY, hue, hue2, 128 + deltaValue, 255 - deltaValue, 255U);
-  }
-
-  if (divider % 2 == 0) {
-    blurScreen(6U);
-  } else {
-    DrawLine(posX, HEIGHT - deltaY, posX, HEIGHT - 1, 0x000000);
-    DrawLine(posX, 0, posX, deltaY , 0x000000);
-    dimAll(255 - posX);
-  }
-  step++;
-}
-*/
-
 
 // ============ Spectrum New ==============
 //             © SlingMaster
@@ -1856,188 +1597,6 @@ void  Spectrum() {
     }
   }
 }
-
-
-/*
-
-// ============ Lotus Flower ============
-//             © SlingMaster
-//               EFF_LOTUS
-//             Цветок Лотоса
-//---------------------------------------
-void  Flower() {
-  uint8_t br;
-  if (step < 128) {
-    br = 255 - step;  // 255 >> 128
-  } else {
-    br = step;        // 128 >> 255
-  }
-  if (modes[currentMode].Scale > 10) {
-    dimAll(90);
-    hue = floor(modes[currentMode].Scale * 1.9) + floor(br / 4);
-  } else {
-    FastLED.clear();
-    hue = step;
-  }
-  if (step > 190) {
-    hue2 = validMinMax(hue - 64 + floor(br / 4), 190, 250);
-  } else {
-    hue2 = hue + 64 - floor(br / 4);
-  }
-
-  for (uint8_t x = 0U ; x < WIDTH ; x++) {
-    if (x % 6 == 0) {
-      gradientVertical( x - deltaValue, 2U, x + 1 - deltaValue, HEIGHT - floor((255 - br) / 24) - random8(2), hue, hue2, 255, floor(br * 0.5), 255U);
-      gradientVertical( x + 3U - deltaValue, 0U, x + 4U - deltaValue, HEIGHT - floor(br / 24) + random8(3), hue, hue2, 255, floor((255 - br * 0.5)), 255U);
-      drawPixelXY(x - deltaValue, 0, 0x005F00);
-    }
-  }
-}
-
-//---------------------------------------
-void LotusFlower() {
-  if (loadingFlag) {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-    if (selectedSettings) {
-      //                     scale | speed
-      setModeSettings(random8(100U), 50U + random8(190U));
-    }
-#endif
-    loadingFlag = false;
-    deltaValue = 0;
-    step = deltaValue;
-    deltaValue = 0;
-    hue = 120;
-    hue2 = 0;
-    deltaHue = 0;
-    deltaHue2 = 0;
-    FastLED.clear();
-  }
-
-  Flower();
-  if (deltaHue == 0) {               // rotation
-    deltaValue--;
-    if (deltaValue <= 0) {
-      deltaValue = 3;
-    }
-  } else {
-    deltaValue++;
-    if (deltaValue >= 3) {
-      deltaValue = 0;
-    }
-  }
-  deltaHue2++;
-  if (deltaHue2 >= 18) {           // swap direction rotate
-    deltaHue2 = 0;
-    deltaHue = (deltaHue == 0) ? 1 : 0;
-  }
-  step++;
-}
-
-
-
-// =========== Christmas Tree ===========
-//             © SlingMaster
-//           EFF_CHRISTMAS_TREE
-//            Новогодняя Елка
-//---------------------------------------
-void VirtualSnow() {
-  for (uint8_t x = 0U; x < WIDTH; x++) {
-    for (uint8_t y = 0U; y < HEIGHT - 1; y++) {
-      noise3d[0][x][y] = noise3d[0][x][y + 1];
-      if (noise3d[0][x][y] > 0) {
-        drawPixelXY(x, y, CHSV(170, 5U, 127 + random8(128)));
-      }
-    }
-  }
-  uint8_t posX = random(WIDTH);
-  for (uint8_t x = 0U; x < WIDTH; x++) {
-    // заполняем случайно верхнюю строку
-    if (posX == x) {
-      if (step % 3 == 0) {
-        noise3d[0][x][HEIGHT - 1U] = 1;
-      } else {
-        noise3d[0][x][HEIGHT - 1U]  = 0;
-      }
-    } else {
-      noise3d[0][x][HEIGHT - 1U]  = 0;
-    }
-  }
-}
-
-//---------------------------------------
-void GreenTree() {
-  hue = floor(step / 32) * 32U;
-  FastLED.clear();
-  for (uint8_t x = 0U; x < WIDTH + 1 ; x++) {
-    if (x % 8 == 0) {
-      if (modes[currentMode].Scale < 60) {
-        // nature -----
-        DrawLine(x - 1U - deltaValue, floor(HEIGHT * 0.70), x + 1U - deltaValue, floor(HEIGHT * 0.70), 0x002F00);
-        DrawLine(x - 1U - deltaValue, floor(HEIGHT * 0.55), x + 1U - deltaValue, floor(HEIGHT * 0.55), 0x004F00);
-        DrawLine(x - 2U - deltaValue, floor(HEIGHT * 0.35), x + 2U - deltaValue, floor(HEIGHT * 0.35), 0x005F00);
-        DrawLine(x - 2U - deltaValue, floor(HEIGHT * 0.15), x + 2U - deltaValue, floor(HEIGHT * 0.15), 0x007F00);
-        drawPixelXY(x - 3U - deltaValue, floor(HEIGHT * 0.15), 0x001F00);
-        drawPixelXY(x + 3U - deltaValue, floor(HEIGHT * 0.15), 0x001F00);
-        gradientVertical( x - deltaValue, 0U, x + 1U - deltaValue, HEIGHT, 96U, 97U, 190U, 32U, 255U);
-      } else {
-        // holiday -----
-        //        drawPixelXY(x - 1 - deltaValue, CENTER_Y_MINOR, CHSV(floor(random8(255) / 32) * 32U, 255U, 128 + random8(128)));
-        //        drawPixelXY(x + 1 - deltaValue, CENTER_Y_MINOR, CHSV(floor(random8(90) / 32) * 32U, 255U, 128 + random8(128)));
-        //        drawPixelXY(x - deltaValue, floor(HEIGHT * 0.2), CHSV(floor(random8(255) / 32) * 32U, 255U, 128 + random8(128)));
-        //        drawPixelXY(x - 2 - deltaValue, floor(HEIGHT * 0.25), CHSV(floor(random8(90) / 32) * 32U, 255U, 128 + random8(128)));
-        //        drawPixelXY(x + 2 - deltaValue, floor(HEIGHT * 0.25), CHSV(floor(random8(255) / 32) * 32U, 255U, 128 + random8(128)));
-        //        drawPixelXY(x - deltaValue, 0U, CHSV(96U, 255U, 200U));
-
-        drawPixelXY(x - 1 - deltaValue, floor(HEIGHT * 0.6), CHSV(step, 255U, 128 + random8(128)));
-        drawPixelXY(x + 1 - deltaValue, floor(HEIGHT * 0.6), CHSV(step, 255U, 128 + random8(128)));
-
-        drawPixelXY(x - deltaValue, floor(HEIGHT * 0.4), CHSV(step, 255U, 200U));
-
-        drawPixelXY(x - deltaValue, floor(HEIGHT * 0.2), CHSV(step, 255U, 190 + random8(65)));
-        drawPixelXY(x - 2 - deltaValue, floor(HEIGHT * 0.25), CHSV(step, 255U, 96 + random8(128)));
-        drawPixelXY(x + 2 - deltaValue, floor(HEIGHT * 0.25), CHSV(step, 255U, 96 + random8(128)));
-
-        drawPixelXY(x - 2 - deltaValue, 1U, CHSV(step, 255U, 200U));
-        drawPixelXY(x - deltaValue, 0U, CHSV(step, 255U, 250U));
-        drawPixelXY(x + 2 - deltaValue, 1U, CHSV(step, 255U, 200U));
-
-        gradientVertical( x - deltaValue, floor(HEIGHT * 0.75), x + 1U - deltaValue, HEIGHT,  hue, hue + 2, 250U, 0U, 128U);
-      }
-    }
-  }
-}
-
-//---------------------------------------
-void ChristmasTree() {
-  if (loadingFlag) {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-    if (selectedSettings) {
-      //                     scale | speed
-      setModeSettings(random8(100U), 10U + random8(128U));
-    }
-#endif
-    loadingFlag = false;
-    deltaValue = 0;
-    step = deltaValue;
-    FastLED.clear();
-  }
-
-  GreenTree();
-  if (modes[currentMode].Scale < 60) {
-    VirtualSnow();
-  }
-  if (modes[currentMode].Scale > 30) {
-    deltaValue++;
-  }
-  if (deltaValue >= 8) {
-    deltaValue = 0;
-  }
-  step++;
-}
-
-*/
-
 
 // =========== Christmas Tree ===========
 //             © SlingMaster
@@ -2194,8 +1753,6 @@ void ChristmasTree() {
   step++;
 }
 
-
-
 // ============== ByEffect ==============
 //             © SlingMaster
 //             EFF_BY_EFFECT
@@ -2261,7 +1818,6 @@ void ByEffect() {
   }
   step++;
 }
-
 
 // =====================================
 //            Строб Хаос Дифузия
@@ -2562,7 +2118,6 @@ void Firework() {
   // LOG.printf_P(PSTR("• [%03d] | %03d | sky Bright • [%03d]\n"), step, FPSdelay, hue);
   step ++;
 }
-
 
 // =====================================
 //             Мечта Дизайнера
@@ -2901,8 +2456,6 @@ void Octopus() {
   //delay(255 - modes[currentMode].Speed);
 }
 
-
-
 // =====================================
 //            Flower Ruta
 //    © Stepko and © Sutaburosu
@@ -3002,7 +2555,7 @@ void LotusFlower() {
 
   if (modes[currentMode].Speed > 128U) {
     if (modes[currentMode].Scale > 50) {
-      deltaSpeed = 80U + (128U - abs(128U - deltaValue)) / 1.25;
+      deltaSpeed = 80U + (128U - deltaValue) / 1.25;
       FPSdelay = SpeedFactor(deltaSpeed);
       if (step % 256 == 0U ) hue += 32;           /* color morph */
     } else {
@@ -3224,8 +2777,6 @@ void Plasma_Waves() {
     }
   }
 }
-
-
 
 // ============ Colored Python ============
 //      base code WavingCell from © Stepko
@@ -3503,7 +3054,6 @@ void Bamboo() {
   index += STP;
 }
 
-
 // =====================================
 //     Multicolored Dandelions
 //      Base Code © Less Lam
@@ -3771,8 +3321,7 @@ void Serpentine() {
     // CRGB col3 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1) + step, 255, 255 - (HEIGHT - y) * BR_INTERWAL - fade);
 
     wu_pixel( x1 + hue * DELTA, yy - PADDING * (255 - hue), &col1);
-    wu_pixel( abs((WIDTH - 1) * 256 - (x1 + hue * DELTA)), yy - PADDING * hue, &col2);
-    //    wu_pixel( x1 + hue * DELTA, yy - PADDING * 3 * (255 - hue), &col3);
+    wu_pixel(((WIDTH - 1) * 256 - (x1 + hue * DELTA)), yy - PADDING * hue, &col2);
   }
 
   step++;
@@ -4013,7 +3562,7 @@ void Avrora() {
     CRGB color2 = CHSV(cur_color - 32, 255 - y * HEIGHT / 4, br);
 
     wu_pixel( x1 + hue + PADDING * hue / 2, yy, &color);
-    wu_pixel( abs((WIDTH - 1) * 256 - (x1 + hue)), yy - PADDING * hue, &color2);
+    wu_pixel(((WIDTH - 1) * 256 - (x1 + hue)), yy - PADDING * hue, &color2);
   }
 
   step++;
@@ -4172,6 +3721,99 @@ void Fountain() {
       emitterY += 3;
     } else {
       pcnt = random8(2, HEIGHT - PADDING - 1);
+    }
+  }
+  step++;
+}
+
+// =========== Rainbow Rings ===========
+//    base code © Martin Kleppe @aemkei
+//             © SlingMaster
+//            Радужные кольца
+// =====================================
+float codeEff(double t, double i, double x, double y) {
+  hue = 255U; hue2 = 0U; // | CENTER_X_MAJOR
+  return sin16((t - sqrt3((x - CENTER_X_MAJOR) * (x - CENTER_X_MAJOR) + (y - CENTER_Y_MAJOR) * (y - CENTER_Y_MAJOR))) * 8192.0) / 32767.0;
+}
+// --------------------------------------
+void drawFrame(double t, double x, double y) {
+  static uint32_t t_count;
+  static byte scaleXY = 8;
+  double i = (y * WIDTH) + x;
+  double frame = constrain(codeEff(t, i, x, y), -1, 1) * 255;
+  uint16_t tt = floor(i);
+  byte xx;
+  byte yy;
+  byte angle;
+  byte radius;
+  if (frame > 0) {
+    // white or black color
+    if (modes[currentMode].Scale > 70) {
+      if (modes[currentMode].Scale > 90) {
+        drawPixelXY(x, y, CRGB(frame / 4, frame / 2, frame / 2));
+      } else {
+        drawPixelXY(x, y, CRGB(frame / 2, frame / 2, frame / 4));
+      }
+    } else {
+      drawPixelXY(x, y, CRGB::Black);
+    }
+  } else {
+    if (frame < 0) {
+      switch (deltaHue2) {
+        case 0:
+          hue = step + y * x;
+          break;
+        case 1:
+          hue = 64 + (y + x) * abs(128 - step) / CENTER_Y_MAJOR;
+          break;
+        case 2:
+          hue = y * x + abs(y - CENTER_Y_MAJOR) * 4;
+          break;
+        case 3:
+          xx = (byte)x;
+          yy = (byte)y;
+          angle = noise3d[0][xx][yy];
+          radius = noise3d[1][xx][yy];
+          if ((xx == 0) & (yy == 0))  t_count += 8;
+          hue = (angle * scaleXY) + (radius * scaleXY) + t_count;
+          break;
+        default:
+          hue = step + y * x;
+          break;
+      }
+      drawPixelXY(x, y, CHSV( hue, frame * -1, frame * -1));
+    } else {
+      drawPixelXY(x, y, CRGB::Black);
+    }
+  }
+}
+// -------------------------------------
+void RainbowRings() {
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(100U), random8(255U));
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+    deltaHue = 0;
+    FPSdelay = 1;
+    deltaHue2 = modes[currentMode].Scale / 22;
+    hue = 255U; hue2 = 0U;
+    for (int8_t x = -CENTER_X_MAJOR; x < CENTER_X_MAJOR; x++) {
+      for (int8_t y = CENTER_X_MAJOR; y < HEIGHT; y++) {
+        noise3d[0][x + CENTER_X_MAJOR][y] = 128 * (atan2(y, x) / PI);
+        noise3d[1][x + CENTER_X_MAJOR][y] = hypot(x, y);                    // thanks Sutaburosu
+      }
+    }
+  }
+  // *****
+  unsigned long milli = millis();
+  double t = milli / 1000.0;
+  for ( double x = 0; x < WIDTH; x++) {
+    for (double y = 0; y < HEIGHT; y++) {
+      drawFrame(t, x, y);
     }
   }
   step++;
