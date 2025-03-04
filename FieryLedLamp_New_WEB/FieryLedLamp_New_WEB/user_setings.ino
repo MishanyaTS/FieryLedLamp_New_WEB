@@ -7,7 +7,7 @@ void User_setings ()  {
  HTTP.on("/ESP_mode", handle_ESP_mode); // Установка ESP Mode
  HTTP.on("/eff_reset", handle_eff_reset);  //сброс настроек эффектов по умолчанию
  HTTP.on("/run_text", handle_run_text);  // Текст для бегущей строки
- HTTP.on("/night_time", handle_night_time);  // Параметры вывода времени бегущей строкой на ВЫключенной лампе (яркость и время день,ночь) 
+ HTTP.on("/night_time", handle_night_time);  // Параметры вывода времени бегущей строкой на выключенной лампе (яркость и время день,ночь) 
  HTTP.on("/effect_always", handle_effect_always);  // Не возобновлять работу эффектов
  HTTP.on("/timer5h", handle_timer5h);  // Автовыключение через 5 часов
  HTTP.on("/ntp", handle_ntp);  // Адрес NTP сервера
@@ -25,7 +25,7 @@ void User_setings ()  {
  HTTP.on("/tm", handle_tm);  // Смена темы страници (0 - светлая / 1 - тёмная)
  HTTP.on("/PassOn", handle_PassOn); // Использовать (1) или нет (0) пароль для доступа к странице Начальных настроек
  HTTP.on("/Power", handle_Power);          // устройство вкл/выкл
- HTTP.on("/summer_time", handle_summer_time);  //Переход на лнтнее время 1 - да , 0 - нет
+ HTTP.on("/summer_time", handle_summer_time);  //Переход на летнее время 1 - да , 0 - нет
  HTTP.on("/time_always", handle_time_always);     // Выводить или нет время бегущей строкой(если задано) на не активной лампе
  HTTP.on("/timeZone", handle_time_zone);    // Установка смещения времени относительно GMT.
  HTTP.on("/alarm", handle_alarm);   // Установка будильника "рассвет"
@@ -99,7 +99,7 @@ void User_setings ()  {
   saveConfig();                 // Функция сохранения строки конфигурации в файл
   HTTP.send(200, F("text/plain"), F( "OK")); // отправляем ответ о выполнении
   });
-   HTTP.on(PSTR("/update"), HTTP_GET, []() {                                            // Запустить страницу обновления по WEB (<IP>/update)
+  HTTP.on(PSTR("/update"), HTTP_GET, []() {                                            // Запустить страницу обновления по WEB (<IP>/update)
     if (!handleFileRead("/update.htm"));
   });
 }
@@ -1022,7 +1022,7 @@ void multiple_lamp_control ()   {
 
      if ( ml4 )   {
       Udp.beginPacket(Host4,localPort);
-      Udp.write(outputBuffer);
+      Udp.print(outputBuffer);
       Udp.endPacket();
     #ifdef GENERAL_DEBUG
       LOG.print (F("Передача MULTI на IP "));
@@ -1034,7 +1034,7 @@ void multiple_lamp_control ()   {
   
     if ( ml5 )   {
       Udp.beginPacket(Host5,localPort);
-      Udp.write(outputBuffer);
+      Udp.print(outputBuffer);
       Udp.endPacket();
     #ifdef GENERAL_DEBUG
       LOG.print (F("Передача MULTI на IP "));
@@ -1152,10 +1152,18 @@ void get_time_manual ()   {
     #endif // WARNING_IF_NO_TIME  
     timeSynched = true;
     getBrightnessForPrintTime();
-    #if defined(PHONE_N_MANUAL_TIME_PRIORITY) && defined(USE_NTP)
+    #if defined(PHONE_N_MANUAL_TIME_PRIORITY) && defined(USE_NTP) && !defined(USE_RTC)
       stillUseNTP = false;
     #endif
     jsonWrite(configSetup, "time", (Get_Time(manualTimeShift+millis()/1000UL)));
+    #ifdef USE_RTC
+    if (hasRtc) {
+    time_t utcTime = localTimeZone.toUTC(manualTimeShift+millis()/1000UL);
+    timeToSet.InitWithEpoch32Time(utcTime);
+    Rtc.SetDateTime(timeToSet);
+    LOG.println(F("Time synced from Browser"));
+    }
+    #endif
     HTTP.send(200, F("application/json"), F("{\"should_refresh\": \"true\"}"));
 }
 

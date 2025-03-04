@@ -73,7 +73,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
             noTimeClear();
           #endif // WARNING_IF_NO_TIME  
           timeSynched = true;
-          #if defined(PHONE_N_MANUAL_TIME_PRIORITY) && defined(USE_NTP)
+          #if defined(PHONE_N_MANUAL_TIME_PRIORITY) && defined(USE_NTP) && !defined(USE_RTC)
             stillUseNTP = false;
           #endif
           getBrightnessForPrintTime();

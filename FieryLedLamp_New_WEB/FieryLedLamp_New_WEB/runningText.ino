@@ -103,7 +103,7 @@ void printTime(uint32_t thisTime, bool onDemand, bool ONflag) // периоди�
   {
     lastTimePrinted = thisTime;
     char stringTime[10U];                                   // буффер для выводимого текста, его длина должна быть НЕ МЕНЬШЕ, чем длина текста + 1
-    sprintf_P(stringTime, PSTR("<- %u:%02u ->"), (uint8_t)((thisTime - thisTime % 60U) / 60U), (uint8_t)(thisTime % 60U));
+    sprintf_P(stringTime, PSTR("<-%u:%02u->"), (uint8_t)((thisTime - thisTime % 60U) / 60U), (uint8_t)(thisTime % 60U));
     loadingFlag = true;
     
     if (!ONflag)

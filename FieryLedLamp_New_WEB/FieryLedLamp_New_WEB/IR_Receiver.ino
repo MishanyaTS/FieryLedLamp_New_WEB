@@ -675,7 +675,7 @@ void Print_IP()   {
     else
     {
       loadingFlag = true;
-      String str = "Access Point 192.168.4.1";
+      String str = "Точка доступа 192.168.4.1";
       while(!fillString(str.c_str(), CRGB::White, false)) {
           delay(1);
           #ifdef ESP32_USED
